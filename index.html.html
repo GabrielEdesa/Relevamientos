@@ -1,0 +1,2444 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#0d1117">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Relevamiento">
+<meta name="application-name" content="Relevamiento">
+<link rel="manifest" id="manifest-link">
+<title>Relevamiento Eléctrico</title>
+<!-- Firebase SDKs -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+:root{
+  --bg:#0d1117;--s1:#161b22;--s2:#21262d;--s3:#30363d;
+  --bl:#1f6feb;--bl2:#388bfd;--bl3:#58a6ff;
+  --gr:#238636;--gr2:#2ea043;--gr3:#3fb950;
+  --am:#9e6a03;--am2:#d29922;--am3:#e3b341;
+  --rd:#8b1a1a;--rd2:#da3633;
+  --pu:#6e40c9;--pu2:#a371f7;
+  --t1:#e6edf3;--t2:#8b949e;--t3:#484f58;
+  --brd:#30363d;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bot: env(safe-area-inset-bottom, 0px);
+}
+html,body{height:100%;background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;color:var(--t1);overflow:hidden}
+#app{height:100vh;height:100dvh;display:flex;flex-direction:column;max-width:520px;margin:0 auto;position:relative;padding-top:var(--safe-top)}
+
+/* ── PANTALLAS ── */
+.page{position:absolute;inset:0;display:flex;flex-direction:column;overflow:hidden;background:var(--bg);transition:transform .28s cubic-bezier(.4,0,.2,1),opacity .28s;will-change:transform,opacity;padding-top:var(--safe-top)}
+.page.hidden{transform:translateX(100%);opacity:0;pointer-events:none}
+.page.out{transform:translateX(-40%);opacity:0;pointer-events:none}
+
+/* ── TOPBAR ── */
+.topbar{flex-shrink:0;display:flex;align-items:center;gap:10px;padding:14px 16px 12px;border-bottom:1px solid var(--brd);background:var(--s1);position:sticky;top:0;z-index:50}
+.tb-back{width:36px;height:36px;border-radius:8px;background:var(--s2);border:1px solid var(--brd);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:18px;color:var(--t2);flex-shrink:0;font-weight:300}
+.tb-info{flex:1;min-width:0}
+.tb-supra{font-size:10px;color:var(--t3);font-weight:600;letter-spacing:.6px;text-transform:uppercase}
+.tb-title{font-size:17px;font-weight:700;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tb-right{display:flex;gap:8px;flex-shrink:0}
+.tb-btn{padding:7px 13px;border-radius:8px;border:1px solid var(--brd);background:var(--s2);color:var(--t2);font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap}
+
+/* ── HOME ── */
+.home-hero{padding:24px 18px 18px;border-bottom:1px solid var(--brd);background:var(--s1)}
+.home-logo{display:flex;align-items:center;gap:12px;margin-bottom:18px}
+.logo-mark{width:46px;height:46px;border-radius:13px;background:var(--bl);display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0}
+.logo-text h1{font-size:20px;font-weight:800;color:var(--t1)}
+.logo-text p{font-size:13px;color:var(--t3);margin-top:1px}
+.new-btn{width:100%;padding:15px;border-radius:12px;border:none;background:var(--bl);color:#fff;font-size:16px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:background .15s}
+.new-btn:active{background:#1558b0}
+.section-title{font-size:11px;font-weight:700;color:var(--t3);letter-spacing:.6px;text-transform:uppercase;padding:16px 18px 8px}
+.rel-card{display:flex;align-items:center;gap:12px;padding:14px 18px;border-bottom:1px solid var(--brd);cursor:pointer;transition:background .12s}
+.rel-card:active{background:var(--s1)}
+.rel-icon{width:42px;height:42px;border-radius:11px;background:var(--s2);border:1px solid var(--brd);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+.rel-body{flex:1;min-width:0}
+.rel-name{font-size:15px;font-weight:600;color:var(--t1)}
+.rel-meta{font-size:12px;color:var(--t3);margin-top:2px}
+.rel-badge{padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;flex-shrink:0}
+.badge-active{background:rgba(46,160,67,.15);color:var(--gr3)}
+.badge-done{background:var(--s2);color:var(--t3);border:1px solid var(--brd)}
+.empty-list{padding:36px 20px;text-align:center;color:var(--t3);font-size:14px;line-height:1.8}
+.home-list-wrap{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch}
+
+/* ── FORM PAGE ── */
+.form-page{padding:20px 16px;flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch}
+.form-label{font-size:12px;color:var(--t3);font-weight:600;letter-spacing:.4px;margin-bottom:7px;display:block;margin-top:18px}
+.form-label:first-child{margin-top:0}
+.form-input{width:100%;background:var(--s2);border:1.5px solid var(--brd);border-radius:10px;color:var(--t1);font-size:16px;padding:13px 15px;outline:none;font-family:inherit;transition:border .2s;-webkit-appearance:none}
+.form-input:focus{border-color:var(--bl2)}
+.form-input::placeholder{color:var(--t3)}
+.hint-text{font-size:12px;color:var(--t3);margin-top:6px;line-height:1.5}
+.cta-btn{width:100%;padding:15px;border-radius:12px;border:none;font-size:16px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:all .15s;margin-top:20px}
+.cta-primary{background:var(--bl);color:#fff}
+.cta-primary:active{background:#1558b0;transform:scale(.99)}
+.cta-disabled{background:var(--s2);color:var(--t3);border:1.5px solid var(--brd);pointer-events:none}
+
+/* ── STATS BAR ── */
+.det-stat-row{display:flex;justify-content:space-around;padding:14px 10px;background:var(--s1);border-bottom:1px solid var(--brd);flex-shrink:0}
+.det-stat{text-align:center;flex:1}
+.det-stat-n{font-size:26px;font-weight:900;color:var(--bl3)}
+.det-stat-l{font-size:10px;color:var(--t3);margin-top:2px;font-weight:500}
+
+/* ── LISTA PIQUETES ── */
+.piq-list{flex:1;overflow-y:auto;padding:12px 14px 0}
+.piq-saved{background:var(--s1);border:1px solid var(--brd);border-radius:12px;padding:12px 14px;margin-bottom:8px;display:flex;align-items:flex-start;gap:10px}
+.ps-num{font-size:20px;font-weight:900;color:var(--bl3);flex-shrink:0;min-width:38px;padding-top:2px}
+.ps-body{flex:1;min-width:0}
+.ps-tags{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:5px}
+.ps-novs{font-size:12px;color:var(--t3);line-height:1.5}
+.ps-del{width:30px;height:30px;border-radius:8px;background:rgba(218,54,51,.1);border:1px solid rgba(218,54,51,.2);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--rd2);font-size:15px;flex-shrink:0;margin-top:2px}
+.piq-footer{flex-shrink:0;padding:14px 14px calc(14px + var(--safe-bot));background:var(--bg);border-top:1px solid var(--brd)}
+.fin-btn{width:100%;padding:15px;border-radius:12px;border:none;font-size:16px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:all .15s}
+.fin-primary{background:var(--bl);color:#fff}
+.fin-primary:active{background:#1558b0;transform:scale(.99)}
+.fin-finish{background:rgba(46,160,67,.15);color:var(--gr3);border:1.5px solid var(--gr2);margin-top:8px}
+.fin-finish:active{background:rgba(46,160,67,.25)}
+.fin-export{background:var(--s2);color:var(--t2);border:1.5px solid var(--brd);margin-top:8px}
+.fin-export:active{background:var(--s3)}
+
+/* ── WIZARD ── */
+.steps-bar{display:flex;gap:3px;padding:10px 14px 0;flex-shrink:0;background:var(--bg)}
+.si{flex:1;height:3px;border-radius:2px;background:var(--s3);transition:background .3s}
+.si.done{background:var(--bl3)}
+.si.active{background:var(--bl2)}
+.step-wrap{flex:1;display:flex;flex-direction:column;overflow:hidden;min-height:0}
+.step-inner{flex:1;display:flex;flex-direction:column;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:18px 16px 0;min-height:0}
+.step-q{font-size:21px;font-weight:800;color:var(--t1);margin-bottom:6px;line-height:1.25}
+.step-sub{font-size:13px;color:var(--t3);margin-bottom:14px;line-height:1.4}
+
+/* OPCIONES VERTICALES */
+.v-opts{display:flex;flex-direction:column;gap:8px}
+.v-opt{display:flex;align-items:center;gap:12px;padding:14px 15px;background:var(--s1);border:1.5px solid var(--brd);border-radius:12px;cursor:pointer;transition:all .14s;text-align:left;width:100%}
+.v-opt:active{transform:scale(.98)}
+.v-opt.sel{border-color:var(--bl2);background:rgba(31,111,235,.12)}
+.v-opt-icon{width:38px;height:38px;border-radius:9px;background:var(--s2);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+.v-opt.sel .v-opt-icon{background:rgba(31,111,235,.25)}
+.v-opt-text{flex:1;min-width:0}
+.v-opt-name{font-size:15px;font-weight:600;color:var(--t1)}
+.v-opt-sub{font-size:12px;color:var(--t3);margin-top:2px}
+.v-opt-radio{width:20px;height:20px;border-radius:50%;border:2px solid var(--brd);flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:all .14s;position:relative}
+.v-opt.sel .v-opt-radio{border-color:var(--bl2);background:var(--bl2)}
+.v-opt-radio:after{content:'';width:7px;height:7px;border-radius:50%;background:#fff;opacity:0;transition:opacity .14s;position:absolute}
+.v-opt.sel .v-opt-radio:after{opacity:1}
+
+/* APENDICE DROPDOWN */
+.apendice-drop{margin-top:10px;border-radius:12px;border:1.5px solid rgba(56,139,253,.4);background:rgba(31,111,235,.07);overflow:hidden}
+.apendice-opt{padding:14px 16px;border-bottom:1px solid rgba(56,139,253,.15);cursor:pointer;font-size:15px;font-weight:500;color:var(--t2);display:flex;align-items:center;gap:10px;transition:background .12s}
+.apendice-opt:last-child{border-bottom:none}
+.apendice-opt:active{background:rgba(31,111,235,.15)}
+.apendice-opt.sel{color:var(--bl3);font-weight:700;background:rgba(31,111,235,.1)}
+.apendice-dot{width:8px;height:8px;border-radius:50%;background:var(--brd);flex-shrink:0;transition:background .14s}
+.apendice-opt.sel .apendice-dot{background:var(--bl3)}
+
+/* GRID 2 COL */
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.g-tile{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;padding:16px 8px;background:var(--s1);border:1.5px solid var(--brd);border-radius:12px;cursor:pointer;transition:all .14s;text-align:center;min-height:82px}
+.g-tile:active{transform:scale(.97)}
+.g-tile.sel{border-color:var(--bl2);background:rgba(31,111,235,.12)}
+.g-tile-icon{font-size:24px}
+.g-tile-name{font-size:13px;font-weight:600;color:var(--t1);line-height:1.3}
+
+/* CHIPS */
+.chips-wrap{display:flex;flex-wrap:wrap;gap:8px}
+.chip{padding:10px 15px;border-radius:30px;border:1.5px solid var(--brd);background:var(--s1);color:var(--t2);font-size:13px;font-weight:500;cursor:pointer;transition:all .14s}
+.chip:active{transform:scale(.97)}
+.chip.sel{border-color:var(--bl2);background:rgba(31,111,235,.12);color:var(--bl3)}
+
+/* TEXTAREA */
+textarea.form-input{min-height:80px;resize:none}
+
+/* STEP FOOTER */
+.step-footer{flex-shrink:0;padding:12px 16px calc(16px + var(--safe-bot));background:var(--bg);border-top:1px solid var(--brd)}
+.foot-row{display:flex;gap:8px}
+.foot-btn{flex:1;padding:15px;border-radius:12px;border:none;font-size:15px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:all .15s}
+.foot-primary{background:var(--bl);color:#fff}
+.foot-primary:active{background:#1558b0;transform:scale(.99)}
+.foot-disabled{background:var(--s2);color:var(--t3);border:1.5px solid var(--brd);pointer-events:none}
+.foot-green{background:var(--gr);color:#fff}
+.foot-green:active{background:#196127;transform:scale(.99)}
+.foot-skip{background:var(--s2);color:var(--t2);border:1.5px solid var(--brd)}
+.foot-skip:active{background:var(--s3);transform:scale(.99)}
+
+/* RESUMEN CARD */
+.resumen-card{background:var(--s1);border:1px solid var(--brd);border-radius:12px;overflow:hidden;margin-bottom:14px}
+.resumen-row{display:flex;align-items:flex-start;justify-content:space-between;padding:11px 14px;border-bottom:1px solid var(--brd);gap:12px}
+.resumen-row:last-child{border-bottom:none}
+.res-k{font-size:12px;color:var(--t3);flex-shrink:0;padding-top:1px;font-weight:500}
+.res-v{font-size:13px;color:var(--t1);font-weight:600;text-align:right;max-width:65%}
+.res-tag{padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600}
+.rt-bl{background:rgba(31,111,235,.15);color:var(--bl3)}
+.rt-gr{background:rgba(46,160,67,.12);color:var(--gr3)}
+.rt-am{background:rgba(210,153,34,.12);color:var(--am3)}
+.rt-pu{background:rgba(163,113,247,.12);color:var(--pu2)}
+
+/* MODAL */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:200;display:flex;align-items:flex-end;justify-content:center;padding:0;opacity:0;pointer-events:none;transition:opacity .25s}
+.modal-bg.show{opacity:1;pointer-events:all}
+.modal-box{background:var(--s1);border-radius:20px 20px 0 0;border-top:1px solid var(--brd);padding:22px 18px calc(28px + var(--safe-bot));width:100%;max-width:520px;transform:translateY(100%);transition:transform .28s cubic-bezier(.4,0,.2,1)}
+.modal-bg.show .modal-box{transform:translateY(0)}
+.modal-title{font-size:17px;font-weight:700;margin-bottom:6px}
+.modal-sub{font-size:13px;color:var(--t2);margin-bottom:20px;line-height:1.5}
+.modal-acts{display:flex;gap:10px}
+.modal-cancel{flex:1;padding:14px;background:var(--s2);border:1px solid var(--brd);border-radius:10px;color:var(--t2);font-size:15px;font-weight:600;cursor:pointer}
+.modal-confirm{flex:1;padding:14px;background:var(--rd2);border:none;border-radius:10px;color:#fff;font-size:15px;font-weight:700;cursor:pointer}
+.modal-confirm.green{background:var(--gr)}
+
+/* TOAST */
+.toast{position:fixed;bottom:calc(28px + var(--safe-bot));left:50%;transform:translateX(-50%) translateY(10px);background:var(--s1);border:1px solid var(--gr2);color:var(--gr3);padding:12px 22px;border-radius:14px;font-size:14px;font-weight:600;opacity:0;transition:all .28s;pointer-events:none;z-index:300;white-space:nowrap;max-width:88vw;text-align:center;box-shadow:0 4px 20px rgba(0,0,0,.4)}
+.toast.err{border-color:var(--rd2);color:#f85149}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* INSTALL BANNER */
+.install-banner{background:rgba(31,111,235,.1);border:1px solid rgba(56,139,253,.3);border-radius:12px;padding:12px 14px;margin:12px 16px 0;display:flex;align-items:center;gap:10px;cursor:pointer}
+.ib-icon{font-size:22px;flex-shrink:0}
+.ib-text{flex:1}
+.ib-title{font-size:13px;font-weight:700;color:var(--bl3)}
+.ib-sub{font-size:11px;color:var(--t3);margin-top:2px;line-height:1.4}
+.ib-close{font-size:18px;color:var(--t3);cursor:pointer;padding:4px;flex-shrink:0}
+
+/* ── DIAGRAMA ── */
+.diag-node{display:flex;flex-direction:column;align-items:center;flex-shrink:0}
+.diag-cable{width:2px;background:var(--t3);flex-shrink:0}
+.diag-cable-top{height:20px}
+.diag-cable-bot{height:20px}
+.diag-sym{position:relative;display:flex;align-items:center;justify-content:center}
+.diag-label{font-size:10px;font-weight:700;color:var(--t2);margin-top:4px;letter-spacing:.3px;text-align:center;max-width:80px}
+.diag-novs{font-size:9px;color:var(--am3);margin-top:2px;text-align:center;max-width:90px;line-height:1.3}
+.diag-urg{font-size:9px;color:var(--rd2);font-weight:700;margin-top:1px}
+</style>
+</head>
+<body>
+<div id="app">
+
+<!-- ══════════════════════════════
+     LOGIN
+══════════════════════════════ -->
+<div class="page" id="p-login">
+  <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;padding:32px 24px;gap:0">
+    <div style="font-size:52px;margin-bottom:12px">⚡</div>
+    <h1 style="font-size:22px;color:var(--bl3);margin-bottom:4px">Relevamientos</h1>
+    <p style="color:var(--t2);font-size:13px;margin-bottom:32px">Líneas eléctricas</p>
+
+    <div id="login-error" style="display:none;background:rgba(218,54,51,.15);border:1px solid var(--rd2);border-radius:8px;padding:10px 14px;color:var(--rd2);font-size:13px;margin-bottom:16px;width:100%;text-align:center"></div>
+
+    <div style="width:100%;display:flex;flex-direction:column;gap:12px">
+      <input class="form-input" id="login-email" type="email" placeholder="Correo electrónico" inputmode="email" autocomplete="username" style="margin:0">
+      <input class="form-input" id="login-pass" type="password" placeholder="Contraseña" autocomplete="current-password" style="margin:0" onkeydown="if(event.key==='Enter')doLogin()">
+      <button class="cta-btn cta-primary" id="btn-login" onclick="doLogin()" style="margin-top:4px">Ingresar</button>
+    </div>
+
+    <div style="margin-top:24px;border-top:1px solid var(--brd);padding-top:20px;width:100%;text-align:center">
+      <p style="color:var(--t3);font-size:12px;margin-bottom:12px">¿Primera vez? Creá tu cuenta</p>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <input class="form-input" id="reg-nombre" type="text" placeholder="Tu nombre" style="margin:0">
+        <button class="cta-btn" onclick="doRegister()" style="background:rgba(46,160,67,.15);color:var(--gr3);border:1.5px solid var(--gr2);margin:0">Crear cuenta</button>
+      </div>
+    </div>
+
+    <div id="login-loading" style="display:none;position:absolute;inset:0;background:rgba(13,17,23,.85);display:none;align-items:center;justify-content:center;flex-direction:column;gap:14px;z-index:999">
+      <div style="width:36px;height:36px;border:3px solid var(--brd);border-top-color:var(--bl3);border-radius:50%;animation:spin 0.8s linear infinite"></div>
+      <span style="color:var(--t2);font-size:13px">Conectando...</span>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════
+     HOME
+══════════════════════════════ -->
+<div class="page hidden" id="p-home">
+  <div class="home-hero">
+    <div style="display:flex;justify-content:space-between;align-items:center;width:100%">
+      <div class="home-logo">
+        <div class="logo-mark">⚡</div>
+        <div class="logo-text">
+          <h1>Relevamientos</h1>
+          <p id="home-user-name" style="color:var(--t2);font-size:12px">—</p>
+        </div>
+      </div>
+      <button onclick="doLogout()" style="background:rgba(255,255,255,.06);border:1px solid var(--brd);color:var(--t2);border-radius:8px;padding:6px 12px;font-size:12px;cursor:pointer">Salir</button>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:12px">
+      <button class="new-btn" onclick="goNuevoRel()" style="flex:1" id="btn-nuevo-rel">＋ &nbsp;Nuevo relevamiento</button>
+      <button id="btn-admin" onclick="goPage('p-admin');renderAdminPanel()" style="display:none;background:rgba(163,113,247,.15);color:var(--pu2);border:1.5px solid rgba(163,113,247,.4);border-radius:12px;padding:12px 16px;font-size:13px;font-weight:700;cursor:pointer">⚙️ Admin</button>
+    </div>
+  </div>
+  <div class="home-list-wrap">
+    <div id="install-banner-wrap"></div>
+    <div class="section-title">RELEVAMIENTOS GUARDADOS</div>
+    <div id="home-list"></div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════
+     PANEL ADMIN
+══════════════════════════════ -->
+<div class="page hidden" id="p-admin">
+  <div class="topbar">
+    <div class="tb-back" onclick="goPage('p-home','back')">‹</div>
+    <div class="tb-info">
+      <div class="tb-supra">ADMINISTRACIÓN</div>
+      <div class="tb-title">Usuarios</div>
+    </div>
+  </div>
+  <div style="flex:1;overflow-y:auto;padding:16px">
+    <div id="admin-pendientes-section">
+      <div class="section-title" style="color:var(--am3)">⏳ PENDIENTES DE APROBACIÓN</div>
+      <div id="admin-pendientes-list" style="margin-bottom:20px"></div>
+    </div>
+    <div class="section-title">✅ USUARIOS APROBADOS</div>
+    <div id="admin-aprobados-list"></div>
+  </div>
+</div>
+
+<!-- CUENTA PENDIENTE -->
+<div class="page hidden" id="p-pending">
+  <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;padding:32px 24px;text-align:center;gap:16px">
+    <div style="font-size:52px">⏳</div>
+    <h2 style="color:var(--am3);font-size:20px">Cuenta pendiente</h2>
+    <p style="color:var(--t2);font-size:14px;line-height:1.6">Tu cuenta fue creada correctamente.<br>Esperá que el administrador la apruebe para poder ingresar.</p>
+    <p style="color:var(--t3);font-size:12px">Una vez aprobada, cerrá sesión y volvé a entrar.</p>
+    <button onclick="doLogout()" style="margin-top:16px;background:rgba(255,255,255,.06);border:1px solid var(--brd);color:var(--t2);border-radius:10px;padding:12px 28px;font-size:14px;cursor:pointer">Cerrar sesión</button>
+  </div>
+</div>
+
+<div class="page hidden" id="p-nombre">
+  <div class="topbar">
+    <div class="tb-back" onclick="goPage('p-home','back')">‹</div>
+    <div class="tb-info">
+      <div class="tb-supra">NUEVO</div>
+      <div class="tb-title">Nombre del relevamiento</div>
+    </div>
+  </div>
+  <div class="form-page">
+    <label class="form-label">Nombre del relevamiento</label>
+    <input class="form-input" id="rel-nombre" type="text" placeholder="Ej: Tramo Norte — Julio 2025" oninput="checkNombre()">
+    <div class="hint-text">Identificá la campaña para encontrarla fácilmente después.</div>
+    <label class="form-label" style="margin-top:18px">Nivel de tensión</label>
+    <div style="display:flex;gap:10px;margin-top:2px">
+      <button class="v-opt" id="btn-33" onclick="pickTension('33kV',this)" style="flex:1;padding:14px 10px">
+        <div class="v-opt-icon">⚡</div>
+        <div class="v-opt-text"><div class="v-opt-name">33 kV</div></div>
+        <div class="v-opt-radio"></div>
+      </button>
+      <button class="v-opt" id="btn-132" onclick="pickTension('13,2kV',this)" style="flex:1;padding:14px 10px">
+        <div class="v-opt-icon">🔋</div>
+        <div class="v-opt-text"><div class="v-opt-name">13,2 kV</div></div>
+        <div class="v-opt-radio"></div>
+      </button>
+    </div>
+    <label class="form-label" style="margin-top:18px">Piquete inicial</label>
+    <input class="form-input" id="rel-piq-inicio" type="number" placeholder="1" min="1" value="1" inputmode="numeric">
+    <div class="hint-text">Los piquetes se numerarán automáticamente desde este número.</div>
+    <button class="cta-btn cta-disabled" id="btn-crear-rel" onclick="crearRelevamiento()">Comenzar relevamiento →</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════
+     RELEVAMIENTO ACTIVO
+══════════════════════════════ -->
+<div class="page hidden" id="p-relev">
+  <div class="topbar">
+    <div class="tb-back" onclick="confirmSalir()">‹</div>
+    <div class="tb-info">
+      <div class="tb-supra" id="relev-supra">RELEVAMIENTO</div>
+      <div class="tb-title" id="relev-title">—</div>
+    </div>
+    <div class="tb-right">
+      <div class="tb-btn" onclick="confirmFinalizar()" style="background:rgba(46,160,67,.15);border-color:var(--gr2);color:var(--gr3)">Finalizar</div>
+    </div>
+  </div>
+  <div class="det-stat-row">
+    <div class="det-stat"><div class="det-stat-n" id="rv-npiq">0</div><div class="det-stat-l">Piquetes</div></div>
+    <div class="det-stat"><div class="det-stat-n" id="rv-nconnov" style="color:var(--am3)">0</div><div class="det-stat-l">Con novedades</div></div>
+    <div class="det-stat" onclick="toggleNovPanel()" style="cursor:pointer">
+      <div class="det-stat-n" id="rv-nnov" style="color:var(--gr3)">0</div>
+      <div class="det-stat-l">Novedades <span style="font-size:10px" id="nov-arrow">▼</span></div>
+    </div>
+  </div>
+  <!-- Tabs Lista / Diagrama -->
+  <div style="display:flex;background:var(--s1);border-bottom:1px solid var(--brd);flex-shrink:0">
+    <button id="tab-lista" onclick="switchTab('lista')" style="flex:1;padding:10px;border:none;background:none;color:var(--bl3);font-size:13px;font-weight:700;border-bottom:2px solid var(--bl3);cursor:pointer">☰ Lista</button>
+    <button id="tab-diagrama" onclick="switchTab('diagrama')" style="flex:1;padding:10px;border:none;background:none;color:var(--t3);font-size:13px;font-weight:600;border-bottom:2px solid transparent;cursor:pointer">⚡ Diagrama</button>
+  </div>
+  <div style="display:flex;justify-content:center;padding:8px 16px;background:var(--s1);border-bottom:1px solid var(--brd);flex-shrink:0">
+    <div style="display:flex;align-items:center;gap:8px;background:rgba(218,54,51,.1);border:1px solid rgba(218,54,51,.3);border-radius:10px;padding:8px 18px;cursor:pointer" onclick="toggleUrgPanel()">
+      <span style="font-size:18px">🚨</span>
+      <span style="font-size:13px;color:var(--rd2);font-weight:700">Urgentes: <span id="rv-nurg">0</span></span>
+      <span style="font-size:10px;color:var(--rd2)" id="urg-arrow">▼</span>
+    </div>
+  </div>
+  <div id="urg-panel" style="display:none;background:var(--s1);border-bottom:1px solid var(--brd);padding:10px 14px;flex-shrink:0">
+    <div id="urg-panel-content" style="font-size:13px;color:var(--t2);line-height:1.8"></div>
+  </div>
+  <!-- Panel desplegable de novedades -->
+  <div id="nov-panel" style="display:none;background:var(--s1);border-bottom:1px solid var(--brd);padding:10px 14px;flex-shrink:0">
+    <div id="nov-panel-content" style="font-size:13px;color:var(--t2);line-height:1.8"></div>
+  </div>
+  <!-- Panel Lista -->
+  <div class="piq-list" id="piq-list" style="display:flex;flex-direction:column">
+    <div class="empty-list" id="piq-empty"><div class="empty-icon">📋</div>Aún no cargaste piquetes.<br>Tocá el botón para comenzar.</div>
+  </div>
+  <!-- Panel Diagrama -->
+  <div id="panel-diagrama" style="display:none;flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:16px 0;background:var(--bg)">
+    <div id="diagrama-wrap" style="display:flex;flex-direction:column;align-items:center;min-height:100%">
+      <div class="empty-list" id="diag-empty"><div class="empty-icon">⚡</div>El diagrama aparecerá<br>a medida que cargues piquetes.</div>
+    </div>
+  </div>
+  <div class="piq-footer">
+    <button class="fin-btn fin-primary" onclick="abrirPiquete()">＋ &nbsp;Cargar piquete &nbsp;<span id="rv-nextpiq" style="opacity:.65;font-weight:500"></span></button>
+    <button class="fin-btn fin-finish" onclick="confirmFinalizar()">✓ &nbsp;Finalizar relevamiento</button>
+    <button class="fin-btn fin-export" onclick="exportarCSV()">⬇ &nbsp;Exportar Excel</button>
+    <button class="fin-btn" onclick="confirmBorrarRelevamiento()" style="margin-top:8px;background:rgba(218,54,51,.1);color:var(--rd2);border:1.5px solid rgba(218,54,51,.3)">🗑 &nbsp;Borrar relevamiento</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════
+     WIZARD PIQUETE
+══════════════════════════════ -->
+<div class="page hidden" id="p-piquete">
+  <div class="topbar">
+    <div class="tb-back" id="wiz-back" onclick="wizBack()" style="display:none">‹</div>
+    <div class="tb-info">
+      <div class="tb-supra" id="wiz-supra">PIQUETE</div>
+      <div class="tb-title" id="wiz-title">—</div>
+    </div>
+    <div class="tb-right">
+      <div class="tb-btn" onclick="cancelarPiquete()">Cancelar</div>
+    </div>
+  </div>
+  <div class="steps-bar" id="steps-bar"></div>
+  <div class="step-wrap">
+
+    <!-- STEP 0: TRONCAL / APENDICE -->
+    <div class="step-inner" id="ws0">
+      <div class="step-q">¿Troncal o Apéndice?</div>
+      <div class="v-opts" id="opts-tronc">
+        <button class="v-opt" id="btn-troncal" onclick="pickTroncal('Troncal',this)">
+          <div class="v-opt-icon">🔌</div>
+          <div class="v-opt-text"><div class="v-opt-name">Troncal</div><div class="v-opt-sub">Línea principal</div></div>
+          <div class="v-opt-radio"></div>
+        </button>
+        <button class="v-opt" id="btn-apendice-opt" onclick="pickTroncal('Apéndice',this)">
+          <div class="v-opt-icon">🔗</div>
+          <div class="v-opt-text"><div class="v-opt-name">Apéndice</div><div class="v-opt-sub">Ramal o derivación</div></div>
+          <div class="v-opt-radio"></div>
+        </button>
+      </div>
+      <div id="apendice-drop" style="display:none;margin-top:12px">
+        <div style="font-size:13px;color:var(--t2);margin-bottom:8px;font-weight:500">¿En cuál apéndice?</div>
+        <div id="apendice-existentes"></div>
+        <button class="v-opt" onclick="mostrarInputApendice()" style="margin-top:6px">
+          <div class="v-opt-icon">＋</div>
+          <div class="v-opt-text"><div class="v-opt-name">Nuevo apéndice</div><div class="v-opt-sub">Escribir nombre</div></div>
+          <div class="v-opt-radio"></div>
+        </button>
+        <div id="nuevo-apendice-wrap" style="display:none;margin-top:10px">
+          <input class="form-input" id="nuevo-apendice-input" type="text" placeholder="Ej: Barrio San Martín, Av. Belgrano..." oninput="checkNuevoApendice()">
+          <div class="foot-row" style="margin-top:8px">
+            <button class="foot-btn foot-disabled" id="btn-confirmar-apendice" onclick="confirmarNuevoApendice()">Confirmar →</button>
+          </div>
+        </div>
+      </div>
+      <div class="step-footer">
+        <div class="foot-row"><button class="foot-btn foot-disabled" id="ws0-btn" onclick="wizNext()">Continuar →</button></div>
+      </div>
+    </div>
+
+    <!-- STEP 1: POSTE O COLUMNA + TIPO (unificado) -->
+    <div class="step-inner" id="ws1" style="display:none">
+      <div class="step-q">Tipo de estructura</div>
+      <!-- Selector base -->
+      <div style="display:flex;gap:8px;margin-bottom:14px">
+        <button class="v-opt" id="estr-poste" onclick="pickEstrBase('Poste',this)" style="flex:1;padding:12px 8px">
+          <div class="v-opt-icon">🪵</div>
+          <div class="v-opt-text"><div class="v-opt-name">Poste</div><div class="v-opt-sub">Madera</div></div>
+          <div class="v-opt-radio"></div>
+        </button>
+        <button class="v-opt" id="estr-col" onclick="pickEstrBase('Columna',this)" style="flex:1;padding:12px 8px">
+          <div class="v-opt-icon">🏗️</div>
+          <div class="v-opt-text"><div class="v-opt-name">Columna</div><div class="v-opt-sub">Hormigón</div></div>
+          <div class="v-opt-radio"></div>
+        </button>
+      </div>
+      <!-- Tipos (se muestran al elegir base) -->
+      <div id="ws1-tipos" style="display:none">
+        <div style="font-size:11px;color:var(--t3);font-weight:700;letter-spacing:.5px;margin-bottom:8px" id="ws1-tipos-label">TIPO</div>
+        <div class="g2" id="ws1-tipos-opts"></div>
+      </div>
+      <div class="step-footer">
+        <div class="foot-row"><button class="foot-btn foot-disabled" id="ws1-btn" onclick="wizNext()">Continuar →</button></div>
+      </div>
+    </div>
+
+    <!-- STEP 2 vacío (ahora ws1 lo absorbe, ws2 se saltea) -->
+    <div class="step-inner" id="ws2" style="display:none">
+      <div class="step-q" id="ws2-q"></div>
+      <div class="g2" id="ws2-opts"></div>
+      <div class="step-footer">
+        <div class="foot-row"><button class="foot-btn foot-disabled" id="ws2-btn" onclick="wizNext()">Continuar →</button></div>
+      </div>
+    </div>
+
+    <!-- STEP 3: NOVEDADES -->
+    <div class="step-inner" id="ws3" style="display:none">
+      <div class="step-q" style="font-size:17px;margin-bottom:4px">Novedades</div>
+
+      <!-- Novedades en grilla 2 col compacta -->
+      <div style="font-size:10px;color:var(--t3);font-weight:700;letter-spacing:.5px;margin-bottom:6px">TIPO</div>
+      <div class="g2" style="gap:5px;margin-bottom:10px">
+        <button class="g-tile" onclick="togChip(this,'nov')" style="min-height:52px;padding:8px 4px;gap:3px"><div style="font-size:11px;font-weight:700;color:var(--am3)">(513)</div><div class="g-tile-name" style="font-size:11px;line-height:1.2">Aplomado Columnas</div></button>
+        <button class="g-tile" onclick="togChip(this,'nov')" style="min-height:52px;padding:8px 4px;gap:3px"><div style="font-size:11px;font-weight:700;color:var(--am3)">(514)</div><div class="g-tile-name" style="font-size:11px;line-height:1.2">Aplomado Postes</div></button>
+        <button class="g-tile" onclick="togChip(this,'nov')" style="min-height:52px;padding:8px 4px;gap:3px"><div style="font-size:11px;font-weight:700;color:var(--am3)">(521)</div><div class="g-tile-name" style="font-size:11px;line-height:1.2">Aislador Pasante</div></button>
+        <button class="g-tile" onclick="togChip(this,'nov')" style="min-height:52px;padding:8px 4px;gap:3px"><div style="font-size:11px;font-weight:700;color:var(--am3)">(523)</div><div class="g-tile-name" style="font-size:11px;line-height:1.2">Cambio Atadura</div></button>
+        <button class="g-tile" onclick="togChip(this,'nov')" style="min-height:52px;padding:8px 4px;gap:3px"><div style="font-size:11px;font-weight:700;color:var(--am3)">(525)</div><div class="g-tile-name" style="font-size:11px;line-height:1.2">Aislac. Retención</div></button>
+        <button class="g-tile" onclick="togChip(this,'nov')" style="min-height:52px;padding:8px 4px;gap:3px"><div style="font-size:11px;font-weight:700;color:var(--am3)">(526)</div><div class="g-tile-name" style="font-size:11px;line-height:1.2">Cambio Conductor</div></button>
+        <button class="g-tile" onclick="togChip(this,'nov')" style="min-height:52px;padding:8px 4px;gap:3px"><div style="font-size:11px;font-weight:700;color:var(--am3)">(527)</div><div class="g-tile-name" style="font-size:11px;line-height:1.2">Cambio Cruceta</div></button>
+        <button class="g-tile" onclick="togChip(this,'nov')" style="min-height:52px;padding:8px 4px;gap:3px"><div style="font-size:11px;font-weight:700;color:var(--am3)">(528)</div><div class="g-tile-name" style="font-size:11px;line-height:1.2">Cambio Descargadores</div></button>
+        <button class="g-tile" onclick="togChip(this,'nov')" style="min-height:52px;padding:8px 4px;gap:3px"><div style="font-size:11px;font-weight:700;color:var(--am3)">(529)</div><div class="g-tile-name" style="font-size:11px;line-height:1.2">Coloc./Cambio Poste</div></button>
+        <button class="g-tile" onclick="togChip(this,'nov')" style="min-height:52px;padding:8px 4px;gap:3px"><div style="font-size:11px;font-weight:700;color:var(--am3)">(530)</div><div class="g-tile-name" style="font-size:11px;line-height:1.2">Poste x Columna</div></button>
+        <button class="g-tile" onclick="togChip(this,'nov')" style="min-height:52px;padding:8px 4px;gap:3px"><div style="font-size:11px;font-weight:700;color:var(--am3)">(555)</div><div class="g-tile-name" style="font-size:11px;line-height:1.2">Poda</div></button>
+        <button class="g-tile" onclick="togChip(this,'nov')" style="min-height:52px;padding:8px 4px;gap:3px"><div style="font-size:11px;font-weight:700;color:var(--am3)">(559)</div><div class="g-tile-name" style="font-size:11px;line-height:1.2">Cond. Deshilado</div></button>
+        <button class="g-tile" onclick="togChip(this,'nov')" style="min-height:52px;padding:8px 4px;gap:3px"><div style="font-size:11px;font-weight:700;color:var(--am3)">(562)</div><div class="g-tile-name" style="font-size:11px;line-height:1.2">Retiro Obj. Extraños</div></button>
+      </div>
+
+      <!-- Fase -->
+      <div style="font-size:10px;color:var(--t3);font-weight:700;letter-spacing:.5px;margin-bottom:6px">FASE</div>
+      <div style="display:flex;gap:7px;margin-bottom:10px">
+        <button class="chip" onclick="togChip(this,'fase')" style="flex:1;justify-content:center;text-align:center;padding:8px 4px;font-size:13px">R</button>
+        <button class="chip" onclick="togChip(this,'fase')" style="flex:1;justify-content:center;text-align:center;padding:8px 4px;font-size:13px">S</button>
+        <button class="chip" onclick="togChip(this,'fase')" style="flex:1;justify-content:center;text-align:center;padding:8px 4px;font-size:13px">T</button>
+      </div>
+
+      <!-- Prioridad -->
+      <div style="font-size:10px;color:var(--t3);font-weight:700;letter-spacing:.5px;margin-bottom:6px">PRIORIDAD</div>
+      <div style="display:flex;gap:7px;margin-bottom:4px">
+        <button id="chip-urgente" onclick="togUrgente(this)" style="flex:1;padding:10px 4px;border-radius:10px;border:1.5px solid rgba(218,54,51,.4);background:rgba(218,54,51,.08);color:var(--rd2);font-size:13px;font-weight:700;cursor:pointer;transition:all .15s;text-align:center">🚨 Urgente</button>
+        <button id="chip-preventivo" onclick="togPreventivo(this)" style="flex:1;padding:10px 4px;border-radius:10px;border:1.5px solid rgba(46,160,67,.35);background:rgba(46,160,67,.07);color:var(--gr3);font-size:13px;font-weight:700;cursor:pointer;transition:all .15s;text-align:center">🔧 Preventivo</button>
+      </div>
+
+      <div class="step-footer">
+        <div class="foot-row"><button class="foot-btn foot-disabled" id="ws3-btn" onclick="wizNext()">Continuar →</button></div>
+        <div class="foot-row" style="margin-top:8px"><button class="foot-btn foot-green" onclick="guardarPiqueteRapido()">✓ Guardar piquete aquí</button></div>
+        <div class="foot-row" style="margin-top:8px"><button class="foot-btn" style="background:rgba(163,113,247,.15);color:var(--pu2);border:1.5px solid rgba(163,113,247,.4)" onclick="irAObservaciones()">📝 Ir a Observaciones →</button></div>
+        <div class="foot-row" style="margin-top:8px"><button class="foot-btn foot-skip" onclick="wizSkip()">Omitir (sin novedades)</button></div>
+      </div>
+    </div>
+
+    <!-- STEP 4: ELEMENTO AFECTADO -->
+    <div class="step-inner" id="ws4" style="display:none">
+      <div class="step-q">Elemento afectado</div>
+      <div class="step-sub">Seleccioná y escribí el número si corresponde.</div>
+      <div id="elem-list" style="display:flex;flex-direction:column;gap:8px"></div>
+      <div class="step-footer">
+        <div class="foot-row"><button class="foot-btn foot-primary" onclick="wizNext()">Continuar →</button></div>
+        <div class="foot-row" style="margin-top:8px"><button class="foot-btn foot-skip" onclick="wizSkip()">Omitir</button></div>
+      </div>
+    </div>
+
+    <!-- STEP 5: GEOGRAFÍA -->
+    <div class="step-inner" id="ws5" style="display:none">
+      <div class="step-q">Condición geográfica</div>
+      <div class="v-opts" id="geo-opts">
+        <button class="v-opt" onclick="togGeo(this)"><div class="v-opt-icon">🛣️</div><div class="v-opt-text"><div class="v-opt-name">Cruce de ruta</div></div><div class="v-opt-radio"></div></button>
+        <button class="v-opt" onclick="togGeo(this)"><div class="v-opt-icon">🌊</div><div class="v-opt-text"><div class="v-opt-name">Río</div></div><div class="v-opt-radio"></div></button>
+        <button class="v-opt" onclick="togGeo(this)"><div class="v-opt-icon">⚠️</div><div class="v-opt-text"><div class="v-opt-name">Camino cortado</div></div><div class="v-opt-radio"></div></button>
+        <button class="v-opt" onclick="togGeo(this)"><div class="v-opt-icon">⚡</div><div class="v-opt-text"><div class="v-opt-name">Línea de AT</div></div><div class="v-opt-radio"></div></button>
+        <button class="v-opt" onclick="togGeo(this)"><div class="v-opt-icon">🔒</div><div class="v-opt-text"><div class="v-opt-name">Acceso a zona privada</div></div><div class="v-opt-radio"></div></button>
+      </div>
+      <div class="step-footer">
+        <div class="foot-row"><button class="foot-btn foot-primary" onclick="wizNext()">Continuar →</button></div>
+        <div class="foot-row" style="margin-top:8px"><button class="foot-btn foot-skip" onclick="wizSkip()">Omitir</button></div>
+      </div>
+    </div>
+
+    <!-- STEP 6: DATOS ADICIONALES + RESUMEN -->
+    <div class="step-inner" id="ws6" style="display:none">
+      <div class="step-q">Datos adicionales</div>
+      <label class="form-label" style="margin-top:0">Referencia documental (opcional)</label>
+      <input class="form-input" id="piq-apendice-doc" type="text" placeholder="Ej: MA 4224">
+      <label class="form-label">Observaciones</label>
+      <textarea class="form-input" id="piq-obs" placeholder="Notas, medidas, condiciones especiales..."></textarea>
+      <div style="font-size:11px;color:var(--t3);font-weight:700;letter-spacing:.5px;margin:18px 0 10px">RESUMEN DEL PIQUETE</div>
+      <div class="resumen-card" id="piq-resumen"></div>
+      <div class="step-footer">
+        <div class="foot-row"><button class="foot-btn foot-green" onclick="guardarPiquete()">✓ &nbsp;Guardar piquete</button></div>
+        <div class="foot-row" style="margin-top:8px"><button class="foot-btn foot-skip" onclick="wizBack()">← Volver a editar</button></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══════════════════════════════
+     DETALLE RELEVAMIENTO FINALIZADO
+══════════════════════════════ -->
+<div class="page hidden" id="p-detalle">
+  <div class="topbar">
+    <div class="tb-back" onclick="goPage('p-home','back')">‹</div>
+    <div class="tb-info">
+      <div class="tb-supra" id="det-supra">RELEVAMIENTO FINALIZADO</div>
+      <div class="tb-title" id="det-title">—</div>
+    </div>
+    <div class="tb-right">
+      <div class="tb-btn" onclick="exportarCSVDetalle()">⬇ Excel</div>
+    </div>
+  </div>
+  <!-- Scroll container para todo el contenido -->
+  <div style="flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch">
+
+    <!-- BOTONES ACCIÓN - sticky bajo el topbar -->
+    <div style="display:flex;gap:6px;padding:8px 12px;background:var(--s1);border-bottom:1px solid var(--brd);position:sticky;top:0;z-index:40;flex-wrap:wrap">
+      <button class="fin-btn" onclick="reabrirRelevamiento()" style="flex:1;min-width:120px;font-size:11px;padding:8px 6px;background:rgba(31,111,235,.15);color:var(--bl3);border:1.5px solid var(--bl2)">＋ Agregar piquetes</button>
+      <button class="fin-btn fin-export" onclick="exportarCSVDetalle()" style="flex:1;min-width:100px;font-size:11px;padding:8px 6px">⬇ Excel</button>
+      <button class="fin-btn" onclick="exportarPDF()" style="flex:1;min-width:100px;font-size:11px;padding:8px 6px;background:rgba(163,113,247,.12);color:var(--pu2);border:1.5px solid rgba(163,113,247,.35)">📄 PDF</button>
+      <button class="fin-btn" onclick="confirmBorrarRelevamiento()" style="flex:0 0 auto;font-size:11px;padding:8px 10px;background:rgba(218,54,51,.1);color:var(--rd2);border:1.5px solid rgba(218,54,51,.3)">🗑</button>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:1px;background:var(--brd);border-bottom:1px solid var(--brd)">
+      <div style="background:var(--s1);padding:12px 6px;text-align:center">
+        <div style="font-size:24px;font-weight:900;color:var(--bl3)" id="det-np">0</div>
+        <div style="font-size:9px;color:var(--t3);font-weight:600;margin-top:2px;letter-spacing:.4px">PIQUETES</div>
+      </div>
+      <div style="background:var(--s1);padding:12px 6px;text-align:center">
+        <div style="font-size:24px;font-weight:900;color:var(--am3)" id="det-nn">0</div>
+        <div style="font-size:9px;color:var(--t3);font-weight:600;margin-top:2px;letter-spacing:.4px">NOVEDADES</div>
+      </div>
+      <div style="background:var(--s1);padding:12px 6px;text-align:center">
+        <div style="font-size:24px;font-weight:900;color:var(--rd2)" id="det-nurg">0</div>
+        <div style="font-size:9px;color:var(--t3);font-weight:600;margin-top:2px;letter-spacing:.4px">URGENTES</div>
+      </div>
+      <div style="background:var(--s1);padding:12px 6px;text-align:center">
+        <div style="font-size:24px;font-weight:900;color:var(--gr3)" id="det-nprev">0</div>
+        <div style="font-size:9px;color:var(--t3);font-weight:600;margin-top:2px;letter-spacing:.4px">PREVENTIVOS</div>
+      </div>
+    </div>
+
+    <!-- BANNER URGENTES (visible solo si hay) -->
+    <div id="det-urg-banner" style="display:none;margin:12px 12px 0;background:rgba(218,54,51,.08);border:1px solid rgba(218,54,51,.3);border-radius:12px;overflow:hidden">
+      <div style="padding:10px 14px;display:flex;align-items:center;gap:8px;cursor:pointer" onclick="toggleDetPanel('det-urg-body','det-urg-arrow')">
+        <span style="font-size:16px">🚨</span>
+        <span style="font-size:13px;font-weight:700;color:var(--rd2);flex:1">Piquetes urgentes</span>
+        <span style="font-size:10px;color:var(--rd2)" id="det-urg-arrow">▼</span>
+      </div>
+      <div id="det-urg-body" style="display:none;padding:0 14px 12px;font-size:12px;color:var(--t2);line-height:2"></div>
+    </div>
+
+    <!-- RESUMEN NOVEDADES (ranking) -->
+    <div id="det-nov-banner" style="display:none;margin:10px 12px 0;background:var(--s1);border:1px solid var(--brd);border-radius:12px;overflow:hidden">
+      <div style="padding:10px 14px;display:flex;align-items:center;gap:8px;cursor:pointer" onclick="toggleDetPanel('det-nov-body','det-nov-arrow')">
+        <span style="font-size:16px">📋</span>
+        <span style="font-size:13px;font-weight:700;color:var(--t1);flex:1">Resumen de novedades</span>
+        <span style="font-size:10px;color:var(--t3)" id="det-nov-arrow">▼</span>
+      </div>
+      <div id="det-nov-body" style="display:none;padding:0 14px 10px"></div>
+    </div>
+
+    <!-- APÉNDICES (si hay) -->
+    <div id="det-apend-banner" style="display:none;margin:10px 12px 0;background:var(--s1);border:1px solid var(--brd);border-radius:12px;overflow:hidden">
+      <div style="padding:10px 14px;display:flex;align-items:center;gap:8px;cursor:pointer" onclick="toggleDetPanel('det-apend-body','det-apend-arrow')">
+        <span style="font-size:16px">🔗</span>
+        <span style="font-size:13px;font-weight:700;color:var(--t1);flex:1">Apéndices relevados</span>
+        <span style="font-size:10px;color:var(--t3)" id="det-apend-arrow">▼</span>
+      </div>
+      <div id="det-apend-body" style="display:none;padding:0 14px 10px;font-size:12px;color:var(--t2);line-height:1.8"></div>
+    </div>
+
+    <!-- DISTRIBUCIÓN ESTRUCTURAS -->
+    <div id="det-estr-banner" style="display:none;margin:10px 12px 0;background:var(--s1);border:1px solid var(--brd);border-radius:12px;overflow:hidden">
+      <div style="padding:10px 14px;display:flex;align-items:center;gap:8px;cursor:pointer" onclick="toggleDetPanel('det-estr-body','det-estr-arrow')">
+        <span style="font-size:16px">🏗️</span>
+        <span style="font-size:13px;font-weight:700;color:var(--t1);flex:1">Estructuras</span>
+        <span style="font-size:10px;color:var(--t3)" id="det-estr-arrow">▼</span>
+      </div>
+      <div id="det-estr-body" style="display:none;padding:0 14px 10px;font-size:12px;color:var(--t2);line-height:1.8"></div>
+    </div>
+
+    <!-- CONDICIONES GEOGRÁFICAS -->
+    <div id="det-geo-banner" style="display:none;margin:10px 12px 0;background:var(--s1);border:1px solid var(--brd);border-radius:12px;overflow:hidden">
+      <div style="padding:10px 14px;display:flex;align-items:center;gap:8px;cursor:pointer" onclick="toggleDetPanel('det-geo-body','det-geo-arrow')">
+        <span style="font-size:16px">🗺️</span>
+        <span style="font-size:13px;font-weight:700;color:var(--t1);flex:1">Condiciones geográficas</span>
+        <span style="font-size:10px;color:var(--t3)" id="det-geo-arrow">▼</span>
+      </div>
+      <div id="det-geo-body" style="display:none;padding:0 14px 10px;font-size:12px;color:var(--t2);line-height:1.8"></div>
+    </div>
+
+    <!-- Tabs Lista / Diagrama detalle -->
+    <div style="display:flex;background:var(--s1);border:1px solid var(--brd);border-radius:12px;margin:14px 12px 6px;overflow:hidden">
+      <button id="dettab-lista" onclick="switchDetTab('lista')" style="flex:1;padding:10px;border:none;background:var(--s2);color:var(--bl3);font-size:13px;font-weight:700;cursor:pointer">☰ Lista</button>
+      <button id="dettab-diagrama" onclick="switchDetTab('diagrama')" style="flex:1;padding:10px;border:none;background:none;color:var(--t3);font-size:13px;font-weight:600;cursor:pointer">⚡ Diagrama</button>
+    </div>
+
+    <!-- LISTA PIQUETES -->
+    <div id="det-list" style="padding:0 12px 12px"></div>
+
+    <!-- DIAGRAMA DETALLE -->
+    <div id="det-diagrama-wrap" style="display:none;padding:16px 0 12px;display:none">
+      <div id="det-diagrama-inner" style="display:flex;flex-direction:column;align-items:center"></div>
+    </div>
+
+    <!-- FIN SCROLL -->
+  </div>
+</div>
+
+</div><!-- /app -->
+
+<div class="modal-bg" id="modal">
+  <div class="modal-box">
+    <div class="modal-title" id="modal-title">¿Confirmar?</div>
+    <div class="modal-sub" id="modal-sub"></div>
+    <div class="modal-acts">
+      <button class="modal-cancel" onclick="closeModal()">Cancelar</button>
+      <button class="modal-confirm" id="modal-ok" onclick="modalAction()">Confirmar</button>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+// ═══════════ MANIFEST PWA dinámico ═══════════
+const manifest = {
+  name:"Relevamiento Eléctrico",short_name:"Relevamiento",
+  start_url:location.href,display:"standalone",
+  background_color:"#0d1117",theme_color:"#0d1117",
+  icons:[{src:"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231f6feb'/%3E%3Ctext y='.9em' font-size='72' x='12'%3E⚡%3C/text%3E%3C/svg%3E",sizes:"512x512",type:"image/svg+xml"}]
+};
+const blob = new Blob([JSON.stringify(manifest)],{type:'application/json'});
+document.getElementById('manifest-link').href = URL.createObjectURL(blob);
+
+// ═══════════ FIREBASE INIT ═══════════
+/*
+  REGLAS FIRESTORE — pegá esto en Firebase Console > Firestore > Reglas:
+
+  rules_version = '2';
+  service cloud.firestore {
+    match /databases/{database}/documents {
+      match /relevamientos/{docId} {
+        allow read: if request.auth != null;
+        allow create: if request.auth != null;
+        allow update, delete: if request.auth != null
+          && resource.data.creadoPor == request.auth.uid;
+      }
+      match /usuarios/{uid} {
+        // Cualquier usuario autenticado puede leer y crear/editar su propio perfil
+        allow read: if request.auth != null;
+        allow write: if request.auth != null;
+      }
+    }
+  }
+*/
+const firebaseConfig = {
+  apiKey: "AIzaSyB5KD-HwmiT2Vrm3vlrxplVAEukWYOMvYE",
+  authDomain: "relevamientos-645c6.firebaseapp.com",
+  projectId: "relevamientos-645c6",
+  storageBucket: "relevamientos-645c6.firebasestorage.app",
+  messagingSenderId: "797836315073",
+  appId: "1:797836315073:web:f12b6a2c44a1769c1d4740"
+};
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db   = firebase.firestore();
+
+// ═══════════ ESTADO ═══════════
+let currentUser = null;
+let activeRelId = null, detalleRelId = null, modalCb = null;
+let wizStep = 0, wizData = {};
+let deferredPrompt = null;
+let data = { relevamientos: [] }; // cache local
+
+// ─── Firestore helpers ────────────────────────────────────────────────────────
+function colRef(){ return db.collection('relevamientos'); }
+
+async function loadFromFirestore(){
+  const snap = await colRef().orderBy('creadoEn','desc').get();
+  data.relevamientos = snap.docs.map(d => ({ ...d.data(), _docId: d.id }));
+}
+
+async function save(rel){
+  // Si no tiene _docId aún, es nuevo → add; si ya tiene → update
+  const payload = { ...rel };
+  delete payload._docId;
+  if(rel._docId){
+    await colRef().doc(rel._docId).set(payload);
+  } else {
+    const ref = await colRef().add(payload);
+    rel._docId = ref.id;
+  }
+}
+
+async function deleteRel(rel){
+  if(rel._docId) await colRef().doc(rel._docId).delete();
+}
+
+function getRel(id){ return data.relevamientos.find(r => r.id === id); }
+function getAct(){ return getRel(activeRelId); }
+
+// ─── Guardar y refrescar home ─────────────────────────────────────────────────
+async function saveAndRefresh(rel){
+  try { await save(rel); } catch(e){ toast('Error al guardar: '+e.message,'err'); }
+  renderHome();
+}
+
+// ═══════════ ADMIN / USUARIOS ═══════════
+const ADMIN_EMAIL = 'gabriel.alaniz.ext@edesa.com.ar';
+function isAdmin(){ return currentUser && currentUser.email === ADMIN_EMAIL; }
+
+function usersRef(){ return db.collection('usuarios'); }
+
+async function getUserProfile(uid){
+  const doc = await usersRef().doc(uid).get();
+  return doc.exists ? doc.data() : null;
+}
+
+async function setUserProfile(uid, data){
+  await usersRef().doc(uid).set(data, { merge: true });
+}
+
+// ═══════════ AUTH ═══════════
+auth.onAuthStateChanged(async user => {
+  if(user){
+    currentUser = user;
+    showLoading(true);
+
+    // Si es admin, perfil automáticamente aprobado con rol 'admin'
+    if(user.email === ADMIN_EMAIL){
+      await setUserProfile(user.uid, {
+        uid: user.uid,
+        email: user.email,
+        nombre: user.displayName || user.email,
+        rol: 'admin',
+        estado: 'aprobado'
+      });
+    }
+
+    const perfil = await getUserProfile(user.uid);
+    showLoading(false);
+
+    if(!perfil || perfil.estado === 'pendiente'){
+      goPage('p-pending');
+      return;
+    }
+
+    if(perfil.estado === 'rechazado'){
+      document.getElementById('login-error').textContent = 'Tu cuenta fue rechazada. Contactá al administrador.';
+      document.getElementById('login-error').style.display = 'block';
+      await auth.signOut();
+      goPage('p-login');
+      return;
+    }
+
+    // Aprobado → cargar datos
+    try { await loadFromFirestore(); } catch(e){ toast('Error al cargar datos','err'); }
+
+    const nombre = perfil.nombre || user.email.split('@')[0];
+    document.getElementById('home-user-name').textContent = nombre + (perfil.rol==='solo_lectura' ? ' 👁' : '');
+
+    // Mostrar botón admin solo al admin
+    document.getElementById('btn-admin').style.display = isAdmin() ? 'block' : 'none';
+
+    // Ocultar botón nuevo si es solo lectura
+    const soloLectura = perfil.rol === 'solo_lectura';
+    document.getElementById('btn-nuevo-rel').style.display = soloLectura ? 'none' : '';
+
+    goPage('p-home');
+    renderHome();
+
+  } else {
+    currentUser = null;
+    goPage('p-login');
+  }
+});
+
+function showLoading(on){
+  const el = document.getElementById('login-loading');
+  if(el) el.style.display = on ? 'flex' : 'none';
+}
+
+async function doLogin(){
+  const email = document.getElementById('login-email').value.trim();
+  const pass  = document.getElementById('login-pass').value;
+  const err   = document.getElementById('login-error');
+  err.style.display = 'none';
+  if(!email || !pass){ err.textContent='Completá email y contraseña'; err.style.display='block'; return; }
+  document.getElementById('btn-login').textContent = 'Ingresando...';
+  try {
+    await auth.signInWithEmailAndPassword(email, pass);
+  } catch(e){
+    err.textContent = tradError(e.code);
+    err.style.display = 'block';
+    document.getElementById('btn-login').textContent = 'Ingresar';
+  }
+}
+
+async function doRegister(){
+  const email  = document.getElementById('login-email').value.trim();
+  const pass   = document.getElementById('login-pass').value;
+  const nombre = document.getElementById('reg-nombre').value.trim();
+  const err    = document.getElementById('login-error');
+  err.style.display = 'none';
+  if(!email || !pass || !nombre){ err.textContent='Completá nombre, email y contraseña (mín. 6 caracteres)'; err.style.display='block'; return; }
+  try {
+    const cred = await auth.createUserWithEmailAndPassword(email, pass);
+    await cred.user.updateProfile({ displayName: nombre });
+    // Guardar perfil como pendiente
+    await setUserProfile(cred.user.uid, {
+      uid: cred.user.uid,
+      email: email,
+      nombre: nombre,
+      rol: 'completo',
+      estado: 'pendiente',
+      creadoEn: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    // Mostrar pantalla de espera
+    goPage('p-pending');
+  } catch(e){
+    err.textContent = tradError(e.code);
+    err.style.display = 'block';
+  }
+}
+
+async function doLogout(){
+  await auth.signOut();
+}
+
+function tradError(code){
+  const map = {
+    'auth/user-not-found':'Usuario no encontrado',
+    'auth/wrong-password':'Contraseña incorrecta',
+    'auth/invalid-email':'Email inválido',
+    'auth/email-already-in-use':'Ese email ya está registrado',
+    'auth/weak-password':'La contraseña debe tener al menos 6 caracteres',
+    'auth/invalid-credential':'Email o contraseña incorrectos',
+    'auth/too-many-requests':'Demasiados intentos. Esperá unos minutos',
+  };
+  return map[code] || 'Error: '+code;
+}
+
+// ═══════════ PANEL ADMIN ═══════════
+async function renderAdminPanel(){
+  if(!isAdmin()){ toast('Sin permisos','err'); return; }
+
+  const snap = await usersRef().get();
+  const usuarios = snap.docs.map(d => d.data()).filter(u => u.email !== ADMIN_EMAIL);
+
+  const pendientes = usuarios.filter(u => u.estado === 'pendiente');
+  const aprobados  = usuarios.filter(u => u.estado === 'aprobado');
+
+  const secPend = document.getElementById('admin-pendientes-section');
+  const listPend = document.getElementById('admin-pendientes-list');
+  const listApro = document.getElementById('admin-aprobados-list');
+
+  secPend.style.display = pendientes.length ? 'block' : 'none';
+
+  listPend.innerHTML = pendientes.length ? pendientes.map(u => `
+    <div style="background:var(--s2);border:1px solid var(--am);border-radius:12px;padding:14px 16px;margin-bottom:10px">
+      <div style="font-weight:700;color:var(--t1);margin-bottom:2px">${u.nombre}</div>
+      <div style="font-size:12px;color:var(--t2);margin-bottom:12px">${u.email}</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button onclick="aprobarUsuario('${u.uid}','completo')" style="flex:1;min-width:100px;background:rgba(46,160,67,.2);color:var(--gr3);border:1.5px solid var(--gr2);border-radius:8px;padding:8px;font-size:12px;font-weight:700;cursor:pointer">✓ Aprobar completo</button>
+        <button onclick="aprobarUsuario('${u.uid}','solo_lectura')" style="flex:1;min-width:100px;background:rgba(163,113,247,.15);color:var(--pu2);border:1.5px solid rgba(163,113,247,.4);border-radius:8px;padding:8px;font-size:12px;font-weight:700;cursor:pointer">👁 Solo lectura</button>
+        <button onclick="rechazarUsuario('${u.uid}')" style="flex:0 0 auto;background:rgba(218,54,51,.15);color:var(--rd2);border:1.5px solid rgba(218,54,51,.3);border-radius:8px;padding:8px 12px;font-size:12px;font-weight:700;cursor:pointer">✕ Rechazar</button>
+      </div>
+    </div>`).join('') : '';
+
+  listApro.innerHTML = aprobados.length ? aprobados.map(u => `
+    <div style="background:var(--s2);border:1px solid var(--brd);border-radius:12px;padding:14px 16px;margin-bottom:10px;display:flex;align-items:center;gap:12px">
+      <div style="flex:1">
+        <div style="font-weight:700;color:var(--t1)">${u.nombre}</div>
+        <div style="font-size:12px;color:var(--t2)">${u.email}</div>
+        <div style="font-size:11px;margin-top:4px;color:${u.rol==='solo_lectura'?'var(--pu2)':'var(--gr3)'}">
+          ${u.rol==='solo_lectura'?'👁 Solo lectura':'✓ Acceso completo'}
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <button onclick="cambiarRol('${u.uid}','${u.rol==='solo_lectura'?'completo':'solo_lectura'}')" style="background:rgba(163,113,247,.12);color:var(--pu2);border:1px solid rgba(163,113,247,.3);border-radius:7px;padding:6px 10px;font-size:11px;cursor:pointer">${u.rol==='solo_lectura'?'→ Completo':'→ Solo lect.'}</button>
+        <button onclick="rechazarUsuario('${u.uid}')" style="background:rgba(218,54,51,.1);color:var(--rd2);border:1px solid rgba(218,54,51,.25);border-radius:7px;padding:6px 10px;font-size:11px;cursor:pointer">Revocar</button>
+      </div>
+    </div>`).join('') : '<div style="color:var(--t3);font-size:13px;padding:12px 0">No hay usuarios aprobados aún.</div>';
+}
+
+async function aprobarUsuario(uid, rol){
+  await setUserProfile(uid, { estado: 'aprobado', rol });
+  toast('Usuario aprobado ✓');
+  renderAdminPanel();
+}
+async function rechazarUsuario(uid){
+  await setUserProfile(uid, { estado: 'rechazado' });
+  toast('Usuario rechazado');
+  renderAdminPanel();
+}
+async function cambiarRol(uid, nuevoRol){
+  await setUserProfile(uid, { rol: nuevoRol });
+  toast('Rol actualizado');
+  renderAdminPanel();
+}
+
+// ═══════════ PWA INSTALL ═══════════
+window.addEventListener('beforeinstallprompt',e=>{
+  e.preventDefault(); deferredPrompt=e;
+  showInstallBanner();
+});
+function showInstallBanner(){
+  if(sessionStorage.getItem('ib_closed')) return;
+  document.getElementById('install-banner-wrap').innerHTML=`
+    <div class="install-banner" onclick="installApp()">
+      <div class="ib-icon">📲</div>
+      <div class="ib-text">
+        <div class="ib-title">Instalar como app</div>
+        <div class="ib-sub">Accedé más rápido desde la pantalla de inicio</div>
+      </div>
+      <div class="ib-close" onclick="closeBanner(event)">✕</div>
+    </div>`;
+}
+function closeBanner(e){e.stopPropagation();sessionStorage.setItem('ib_closed','1');document.getElementById('install-banner-wrap').innerHTML='';}
+async function installApp(){
+  if(!deferredPrompt) return;
+  deferredPrompt.prompt();
+  const r=await deferredPrompt.userChoice;
+  if(r.outcome==='accepted') document.getElementById('install-banner-wrap').innerHTML='';
+  deferredPrompt=null;
+}
+
+// ═══════════ NAVEGACIÓN ═══════════
+function goPage(to,dir='fwd'){
+  document.querySelectorAll('.page').forEach(p=>{
+    p.classList.remove('hidden','out');
+    if(p.id===to) return;
+    if(dir==='back') p.classList.add('hidden');
+    else { p.classList.add('out'); setTimeout(()=>{p.classList.remove('out');p.classList.add('hidden');},300); }
+  });
+  document.getElementById(to).classList.remove('hidden','out');
+}
+
+// ═══════════ HOME ═══════════
+function renderHome(){
+  const list=document.getElementById('home-list');
+  if(!data.relevamientos.length){
+    list.innerHTML='<div class="empty-list"><div class="empty-icon">📂</div>No hay relevamientos aún.<br>Creá uno con el botón de arriba.</div>';
+    return;
+  }
+  list.innerHTML=data.relevamientos.slice().sort((a,b)=>{
+    // más recientes primero; si no tienen timestamp usamos id
+    const ta=a.creadoEn?.seconds||parseInt(a.id)||0;
+    const tb=b.creadoEn?.seconds||parseInt(b.id)||0;
+    return tb-ta;
+  }).map(r=>{
+    const nP=r.piquetes.length, nN=r.piquetes.reduce((a,p)=>a+(p.novedades||[]).length,0);
+    const badge=r.finalizado
+      ?'<span class="rel-badge badge-done">Finalizado</span>'
+      :'<span class="rel-badge badge-active">En curso</span>';
+    const esPropio = !r.creadoPor || (currentUser && r.creadoPor===currentUser.uid);
+    const ownerTag = r.creadoPorNombre && !esPropio
+      ? `<span style="font-size:10px;color:var(--pu2);margin-left:4px">🔒 ${r.creadoPorNombre}</span>`
+      : (r.creadoPorNombre && esPropio ? `<span style="font-size:10px;color:var(--t3)">👤 Vos</span>` : '');
+    return `<div class="rel-card" onclick="abrirRelevamiento('${r.id}')">
+      <div class="rel-icon">${r.finalizado?'📋':'⚡'}</div>
+      <div class="rel-body">
+        <div class="rel-name">${r.nombre} ${ownerTag}</div>
+        <div class="rel-meta">${nP} piquete${nP!==1?'s':''} · ${nN} novedad${nN!==1?'es':''} · ${r.fecha}</div>
+      </div>${badge}</div>`;
+  }).join('');
+}
+
+function goNuevoRel(){
+  document.getElementById('rel-nombre').value='';
+  document.getElementById('rel-piq-inicio').value='1';
+  document.querySelectorAll('#p-nombre .v-opt').forEach(b=>b.classList.remove('sel'));
+  selectedTension=null;
+  document.getElementById('btn-crear-rel').className='cta-btn cta-disabled';
+  goPage('p-nombre');
+}
+let selectedTension=null;
+function pickTension(val,btn){
+  selectedTension=val;
+  document.querySelectorAll('#p-nombre .v-opt').forEach(b=>b.classList.remove('sel'));
+  btn.classList.add('sel');
+  checkNombre();
+}
+function checkNombre(){
+  const v=document.getElementById('rel-nombre').value.trim();
+  document.getElementById('btn-crear-rel').className='cta-btn '+(v?'cta-primary':'cta-disabled');
+}
+async function crearRelevamiento(){
+  const nombre=document.getElementById('rel-nombre').value.trim(); if(!nombre) return;
+  const inicio=parseInt(document.getElementById('rel-piq-inicio').value)||1;
+  const rel={
+    id:Date.now().toString(),
+    nombre, tension:selectedTension||'',
+    piqInicio:inicio, piqActual:inicio,
+    fecha:new Date().toLocaleDateString('es-AR'),
+    piquetes:[], apendices:[], finalizado:false,
+    creadoEn: firebase.firestore.FieldValue.serverTimestamp(),
+    creadoPor: currentUser ? currentUser.uid : '',
+    creadoPorNombre: currentUser ? (currentUser.displayName||currentUser.email) : ''
+  };
+  data.relevamientos.push(rel);
+  await save(rel);
+  activeRelId=rel.id; abrirPantallaRel();
+}
+function abrirRelevamiento(id){
+  const rel=getRel(id); if(!rel) return;
+  if(rel.finalizado){ detalleRelId=id; renderDetalle(); goPage('p-detalle'); }
+  else { activeRelId=id; abrirPantallaRel(); }
+}
+
+// ═══════════ RELEVAMIENTO ACTIVO ═══════════
+function abrirPantallaRel(){
+  const rel=getAct();
+  document.getElementById('relev-supra').textContent=rel.tension||'RELEVAMIENTO';
+  document.getElementById('relev-title').textContent=rel.nombre;
+  activeTab='lista'; switchTab('lista'); actualizarHeader(); renderPiquetesList(); goPage('p-relev');
+}
+function actualizarHeader(){
+  const rel=getAct(), nP=rel.piquetes.length;
+  const nN=rel.piquetes.reduce((a,p)=>a+(p.novedades||[]).length,0);
+  const nConNov=rel.piquetes.filter(p=>(p.novedades||[]).length>0).length;
+  const nUrg=rel.piquetes.filter(p=>p.urgente).length;
+  document.getElementById('rv-npiq').textContent=nP;
+  document.getElementById('rv-nnov').textContent=nN;
+  document.getElementById('rv-nconnov').textContent=nConNov;
+  document.getElementById('rv-nurg').textContent=nUrg;
+  document.getElementById('rv-nextpiq').textContent=`#${rel.piqActual}`;
+  if(document.getElementById('nov-panel').style.display!=='none') renderNovPanel();
+  if(document.getElementById('urg-panel').style.display!=='none') renderUrgPanel();
+}
+function toggleUrgPanel(){
+  const panel=document.getElementById('urg-panel');
+  const arrow=document.getElementById('urg-arrow');
+  if(panel.style.display==='none'){ renderUrgPanel(); panel.style.display='block'; arrow.textContent='▲'; }
+  else { panel.style.display='none'; arrow.textContent='▼'; }
+}
+function renderUrgPanel(){
+  const rel=getAct(); if(!rel) return;
+  const urgs=rel.piquetes.filter(p=>p.urgente);
+  const content=document.getElementById('urg-panel-content');
+  if(!urgs.length){ content.innerHTML='<span style="color:var(--t3)">Sin piquetes urgentes.</span>'; return; }
+  content.innerHTML=urgs.map(p=>`<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--brd)">
+    <span style="color:var(--t2);font-size:12px">Piquete #${p.numero} — ${(p.novedades||[]).join(', ')||'—'}</span>
+    <span style="color:var(--rd2);font-weight:700;font-size:12px">🚨</span>
+  </div>`).join('');
+}
+function toggleNovPanel(){
+  const panel=document.getElementById('nov-panel');
+  const arrow=document.getElementById('nov-arrow');
+  if(panel.style.display==='none'){
+    renderNovPanel();
+    panel.style.display='block';
+    arrow.textContent='▲';
+  } else {
+    panel.style.display='none';
+    arrow.textContent='▼';
+  }
+}
+function renderNovPanel(){
+  const rel=getAct(); if(!rel) return;
+  const counts={};
+  rel.piquetes.forEach(p=>(p.novedades||[]).forEach(n=>{ counts[n]=(counts[n]||0)+1; }));
+  const content=document.getElementById('nov-panel-content');
+  if(!Object.keys(counts).length){
+    content.innerHTML='<span style="color:var(--t3)">Sin novedades registradas aún.</span>';
+    return;
+  }
+  content.innerHTML=Object.entries(counts)
+    .sort((a,b)=>b[1]-a[1])
+    .map(([k,v])=>`<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--brd)">
+      <span style="color:var(--t2);font-size:12px">${k}</span>
+      <span style="color:var(--gr3);font-weight:700;font-size:13px">${v}</span>
+    </div>`).join('');
+}
+function renderPiquetesList(){
+  const rel=getAct();
+  const empty=document.getElementById('piq-empty'), list=document.getElementById('piq-list');
+  list.querySelectorAll('.piq-saved').forEach(e=>e.remove());
+  empty.style.display=rel.piquetes.length?'none':'block';
+  rel.piquetes.slice().reverse().forEach(piq=>{
+    const ri=rel.piquetes.indexOf(piq);
+    const tags=[
+      `<span class="res-tag rt-bl">${piq.troncal}${piq.apendice?' — '+piq.apendice:''}</span>`,
+      piq.urgente?`<span class="res-tag" style="background:rgba(218,54,51,.15);color:var(--rd2)">🚨 Urgente</span>`:'',
+      piq.estructuraBase?`<span class="res-tag rt-am">${piq.estructuraBase}</span>`:'',
+      piq.estructuraTipo?`<span class="res-tag rt-pu">${piq.estructuraTipo}</span>`:'',
+      ...(piq.fases||[]).map(f=>`<span class="res-tag" style="background:rgba(163,113,247,.12);color:var(--pu2)">${f}</span>`),
+      ...(piq.geos||[]).map(g=>`<span class="res-tag rt-gr">${g}</span>`)
+    ].filter(Boolean).join('');
+    const novs=(piq.novedades||[]).join(' · ')||'Sin novedades';
+    const d=document.createElement('div');
+    d.className='piq-saved';
+    d.innerHTML=`<div class="ps-num">#${piq.numero}</div>
+      <div class="ps-body"><div class="ps-tags">${tags}</div><div class="ps-novs">${novs}</div>
+      ${piq.obs?`<div class="ps-novs" style="margin-top:3px;font-style:italic;color:var(--t3)">${piq.obs}</div>`:''}</div>
+      <div class="ps-del" onclick="deletePiquete(${ri})">✕</div>`;
+    list.insertBefore(d,empty);
+  });
+}
+function deletePiquete(idx){
+  showModal('¿Eliminar piquete?','Esta acción no se puede deshacer.',()=>{
+    const rel=getAct(); rel.piquetes.splice(idx,1);
+    rel.piqActual=rel.piqInicio+rel.piquetes.length; save(rel);
+    actualizarHeader(); renderPiquetesList(); if(activeTab==='diagrama') renderDiagrama(); toast('Piquete eliminado');
+  },'danger');
+}
+function confirmSalir(){
+  showModal('¿Salir del relevamiento?','Los datos se conservan. Podés volver en cualquier momento.',()=>{
+    goPage('p-home','back'); renderHome();
+  });
+}
+function confirmFinalizar(){
+  const rel=getAct();
+  if(!rel.piquetes.length){toast('Cargá al menos un piquete','err');return;}
+  showModal('¿Finalizar relevamiento?',`Se guardarán ${rel.piquetes.length} piquetes. No podrás agregar más.`,()=>{
+    rel.finalizado=true; save(rel); renderHome(); toast('✓ Relevamiento finalizado');
+    goPage('p-home','back'); renderHome();
+  },'green');
+}
+
+// ═══════════ WIZARD ═══════════
+const WIZ_N=7;
+const ELEMENTOS=[
+  {cod:'XV',nombre:'Seccionador XV'},{cod:'XE',nombre:'Seccionador XE'},{cod:'XS',nombre:'Seccionador XS'},
+  {cod:'BC',nombre:'Secc. Interruptor BC'},{cod:'UN',nombre:'Secc. Unipolar UN'},
+  {cod:'TR',nombre:'Secc. Tripolar TR'},{cod:'RE',nombre:'Reconectador RE'},{cod:'CT',nombre:'Centro Transf. CT'},
+];
+function abrirPiquete(){
+  const rel=getAct();
+  wizStep=0;
+  wizData={numero:rel.piqActual,troncal:null,apendice:null,estructuraBase:null,estructuraTipo:null,novedades:[],fases:[],urgente:false,preventivo:false,elementos:[],geos:[],apendiceDoc:'',obs:''};
+  document.querySelectorAll('#p-piquete .v-opt,.g-tile').forEach(b=>b.classList.remove('sel'));
+  // Reset urgente/preventivo al estado visual inicial
+  const ub=document.getElementById('chip-urgente');
+  if(ub){ub.classList.remove('sel');ub.style.borderColor='rgba(218,54,51,.4)';ub.style.background='rgba(218,54,51,.08)';ub.style.color='var(--rd2)';ub.style.fontWeight='700';}
+  const pb=document.getElementById('chip-preventivo');
+  if(pb){pb.classList.remove('sel');pb.style.borderColor='rgba(46,160,67,.35)';pb.style.background='rgba(46,160,67,.07)';pb.style.color='var(--gr3)';pb.style.fontWeight='700';}
+  document.querySelectorAll('#p-piquete .chip').forEach(c=>{ c.classList.remove('sel'); });
+  document.getElementById('apendice-drop').style.display='none';
+  document.getElementById('nuevo-apendice-wrap').style.display='none';
+  document.getElementById('nuevo-apendice-input').value='';
+  document.getElementById('piq-apendice-doc').value='';
+  document.getElementById('piq-obs').value='';
+  ['ws0-btn','ws1-btn','ws2-btn','ws3-btn'].forEach(id=>{const b=document.getElementById(id);if(b){b.className='foot-btn foot-disabled';b.textContent='Continuar →';}});
+  renderElemList();
+  document.getElementById('wiz-supra').textContent=rel.nombre.toUpperCase().slice(0,30);
+  document.getElementById('wiz-title').textContent=`Piquete #${rel.piqActual}`;
+  const bar=document.getElementById('steps-bar');
+  bar.innerHTML=Array.from({length:WIZ_N},(_,i)=>`<div class="si" id="si-${i}"></div>`).join('');
+  // Si ya hay apéndices creados, pre-seleccionar Apéndice automáticamente
+  if(rel.apendices && rel.apendices.length>0){
+    const btnAp=document.getElementById('btn-apendice-opt');
+    if(btnAp){
+      document.querySelectorAll('#opts-tronc .v-opt').forEach(b=>b.classList.remove('sel'));
+      btnAp.classList.add('sel');
+      wizData.troncal='Apéndice';
+      document.getElementById('apendice-drop').style.display='block';
+      renderApendicesExistentes();
+    }
+  }
+  showWizStep(0); goPage('p-piquete');
+}
+function renderElemList(){
+  const list=document.getElementById('elem-list');
+  list.innerHTML=ELEMENTOS.map(e=>`
+    <div style="display:flex;align-items:center;gap:10px;background:var(--s1);border:1.5px solid var(--brd);border-radius:12px;padding:10px 14px;transition:all .14s" id="elem-row-${e.cod}">
+      <button onclick="togElemRow('${e.cod}')" style="flex:1;background:none;border:none;display:flex;align-items:center;gap:10px;cursor:pointer;text-align:left;min-width:0">
+        <div style="width:36px;height:36px;border-radius:8px;background:var(--s2);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:var(--bl3);flex-shrink:0">${e.cod}</div>
+        <span style="font-size:14px;font-weight:500;color:var(--t2)">${e.nombre}</span>
+      </button>
+      <input type="text" placeholder="N°" inputmode="numeric" id="elem-num-${e.cod}" style="width:58px;background:var(--s2);border:1.5px solid var(--brd);border-radius:8px;color:var(--t1);font-size:14px;padding:8px 6px;outline:none;display:none;text-align:center;flex-shrink:0" oninput="saveElemNum('${e.cod}',this.value)">
+    </div>`).join('');
+}
+function togElemRow(cod){
+  const row=document.getElementById('elem-row-'+cod);
+  const numInput=document.getElementById('elem-num-'+cod);
+  const isOn=row.getAttribute('data-sel')==='1';
+  if(isOn){
+    row.setAttribute('data-sel','0'); row.style.borderColor=''; row.style.background='';
+    numInput.style.display='none';
+    wizData.elementos=wizData.elementos.filter(e=>e.cod!==cod);
+  } else {
+    row.setAttribute('data-sel','1'); row.style.borderColor='var(--bl2)'; row.style.background='rgba(31,111,235,.1)';
+    numInput.style.display='block';
+    if(!wizData.elementos.find(e=>e.cod===cod)) wizData.elementos.push({cod,nombre:ELEMENTOS.find(e=>e.cod===cod).nombre,num:''});
+  }
+}
+function saveElemNum(cod,val){const el=wizData.elementos.find(e=>e.cod===cod);if(el)el.num=val;}
+function updInd(){for(let i=0;i<WIZ_N;i++){const el=document.getElementById('si-'+i);if(!el)continue;el.className='si'+(i<wizStep?' done':i===wizStep?' active':'');}}
+function showWizStep(n){
+  wizStep=n;
+  for(let i=0;i<WIZ_N;i++) document.getElementById('ws'+i).style.display=i===n?'flex':'none';
+  document.getElementById('wiz-back').style.display=n>0?'flex':'none';
+  // Resetear panel de tipos cada vez que se entra al paso de estructura
+  if(n===1){
+    document.getElementById('ws1-tipos').style.display='none';
+    document.getElementById('ws1-tipos-opts').innerHTML='';
+    document.querySelectorAll('#ws1 .v-opt').forEach(b=>b.classList.remove('sel'));
+    wizData.estructuraBase=null; wizData.estructuraTipo=null;
+    document.getElementById('ws1-btn').className='foot-btn foot-disabled';
+  }
+  updInd();
+  if(n===6) buildResumen();
+}
+function wizNext(){const next=wizStep===1?3:wizStep+1; showWizStep(next);}
+function wizSkip(){showWizStep(wizStep+1);}
+function wizBack(){if(wizStep===3) showWizStep(1); else if(wizStep>0) showWizStep(wizStep-1); else cancelarPiquete();}
+function cancelarPiquete(){goPage('p-relev','back');}
+function pickTroncal(val,btn){
+  wizData.troncal=val; wizData.apendice=null;
+  document.querySelectorAll('#opts-tronc .v-opt').forEach(b=>b.classList.remove('sel'));
+  btn.classList.add('sel');
+  if(val==='Apéndice'){
+    document.getElementById('apendice-drop').style.display='block';
+    renderApendicesExistentes();
+    document.getElementById('ws0-btn').className='foot-btn foot-disabled';
+  } else {
+    document.getElementById('apendice-drop').style.display='none';
+    document.getElementById('ws0-btn').className='foot-btn foot-primary';
+    setTimeout(()=>wizNext(),180);
+  }
+}
+function renderApendicesExistentes(){
+  const rel=getAct();
+  const cont=document.getElementById('apendice-existentes');
+  if(!rel.apendices||!rel.apendices.length){cont.innerHTML='';return;}
+  cont.innerHTML=rel.apendices.map(a=>`
+    <button class="v-opt" onclick="pickApendice('${a}',this)" style="margin-bottom:6px">
+      <div class="v-opt-icon">🔗</div>
+      <div class="v-opt-text"><div class="v-opt-name">${a}</div></div>
+      <div class="v-opt-radio"></div>
+    </button>`).join('');
+}
+function pickApendice(nombre,btn){
+  wizData.apendice=nombre;
+  document.querySelectorAll('#apendice-existentes .v-opt').forEach(b=>b.classList.remove('sel'));
+  if(btn) btn.classList.add('sel');
+  document.getElementById('ws0-btn').className='foot-btn foot-primary';
+  setTimeout(()=>wizNext(),180);
+}
+function mostrarInputApendice(){document.getElementById('nuevo-apendice-wrap').style.display='block';}
+function checkNuevoApendice(){
+  const v=document.getElementById('nuevo-apendice-input').value.trim();
+  document.getElementById('btn-confirmar-apendice').className='foot-btn '+(v?'foot-primary':'foot-disabled');
+}
+function confirmarNuevoApendice(){
+  const v=document.getElementById('nuevo-apendice-input').value.trim(); if(!v) return;
+  const rel=getAct(); if(!rel.apendices) rel.apendices=[];
+  if(!rel.apendices.includes(v)) rel.apendices.push(v);
+  save(getAct()); wizData.apendice=v;
+  document.getElementById('nuevo-apendice-wrap').style.display='none';
+  renderApendicesExistentes();
+  document.getElementById('ws0-btn').className='foot-btn foot-primary';
+  setTimeout(()=>wizNext(),300);
+}
+function pickEstrBase(val,btn){
+  wizData.estructuraBase=val; wizData.estructuraTipo=null;
+  document.querySelectorAll('#ws1 .v-opt').forEach(b=>b.classList.remove('sel'));
+  btn.classList.add('sel');
+  // Mostrar tipos inline en ws1
+  const tipos=val==='Poste'
+    ?[['🪵','Normal'],['⚓','Retención Contraposte'],['↔️','Pasante Contraposte']]
+    :[['🏗️','Pasante'],['🔒','Simple Retención'],['🔐','Doble Retención']];
+  document.getElementById('ws1-tipos-label').textContent='TIPO DE '+val.toUpperCase();
+  document.getElementById('ws1-tipos-opts').innerHTML=tipos.map(([ico,n])=>`<button class="g-tile" onclick="pickEstrTipo('${n}',this)"><div class="g-tile-icon">${ico}</div><div class="g-tile-name">${n}</div></button>`).join('');
+  document.getElementById('ws1-tipos').style.display='block';
+  document.getElementById('ws1-btn').className='foot-btn foot-disabled';
+}
+function pickEstrTipo(val,btn){
+  wizData.estructuraTipo=val;
+  document.querySelectorAll('#ws1-tipos-opts .g-tile').forEach(b=>b.classList.remove('sel'));
+  btn.classList.add('sel');
+  document.getElementById('ws1-btn').className='foot-btn foot-primary';
+  setTimeout(()=>{ showWizStep(3); },180); // saltar directo a novedades (ws3)
+}
+function togChip(chip,group){
+  // Para novedades extraer solo el código numérico entre paréntesis
+  let v=chip.textContent.trim();
+  if(group==='nov'){
+    const m=v.match(/\((\d+)\)/); if(m) v=m[1];
+  }
+  chip.classList.toggle('sel');
+  if(group==='nov'){
+    const i=wizData.novedades.indexOf(v); if(i>=0) wizData.novedades.splice(i,1); else wizData.novedades.push(v);
+    const b=document.getElementById('ws3-btn');
+    if(wizData.novedades.length){b.textContent=`Continuar (${wizData.novedades.length}) →`;b.className='foot-btn foot-primary';}
+    else{b.textContent='Continuar →';b.className='foot-btn foot-disabled';}
+  } else if(group==='fase'){
+    const i=wizData.fases.indexOf(v); if(i>=0) wizData.fases.splice(i,1); else wizData.fases.push(v);
+  } else if(group==='prio'){
+    wizData.preventivo=chip.classList.contains('sel');
+  }
+}
+function togUrgente(chip){
+  chip.classList.toggle('sel'); wizData.urgente=chip.classList.contains('sel');
+  if(wizData.urgente){chip.style.borderColor='var(--rd2)';chip.style.background='rgba(218,54,51,.35)';chip.style.color='#ff6b6b';chip.style.fontWeight='800';}
+  else{chip.style.borderColor='rgba(218,54,51,.4)';chip.style.background='rgba(218,54,51,.08)';chip.style.color='var(--rd2)';chip.style.fontWeight='700';}
+}
+function togPreventivo(chip){
+  chip.classList.toggle('sel'); wizData.preventivo=chip.classList.contains('sel');
+  if(wizData.preventivo){chip.style.borderColor='var(--gr2)';chip.style.background='rgba(46,160,67,.35)';chip.style.color='#5af078';chip.style.fontWeight='800';}
+  else{chip.style.borderColor='rgba(46,160,67,.35)';chip.style.background='rgba(46,160,67,.07)';chip.style.color='var(--gr3)';chip.style.fontWeight='700';}
+}
+function togGeo(btn){
+  const v=btn.querySelector('.v-opt-name').textContent.trim(); btn.classList.toggle('sel');
+  const i=wizData.geos.indexOf(v); if(i>=0) wizData.geos.splice(i,1); else wizData.geos.push(v);
+}
+function buildResumen(){
+  const elemStr=wizData.elementos.length?wizData.elementos.map(e=>e.cod+(e.num?' #'+e.num:'')).join(', '):'—';
+  const rows=[
+    ['Piquete','#'+wizData.numero],
+    ['Posición',wizData.troncal+(wizData.apendice?' — '+wizData.apendice:'')],
+    ['Estructura',[wizData.estructuraBase,wizData.estructuraTipo].filter(Boolean).join(' · ')||'—'],
+    ['Novedades',wizData.novedades.length?wizData.novedades.join(', '):'Sin novedades'],
+    ['Fases',wizData.fases.length?wizData.fases.join(', '):'—'],
+    ['Prioridad',(wizData.urgente?'🚨 Urgente':'')+(wizData.preventivo?'🔧 Preventivo':'')+'—'.repeat((!wizData.urgente&&!wizData.preventivo)?1:0)],
+    ['Elementos',elemStr],['Geografía',wizData.geos.length?wizData.geos.join(', '):'—'],
+  ];
+  document.getElementById('piq-resumen').innerHTML=rows.map(([k,v])=>`<div class="resumen-row"><span class="res-k">${k}</span><span class="res-v">${v}</span></div>`).join('');
+}
+function irAObservaciones(){
+  // Salta directamente al step 6 (Datos adicionales / Observaciones) desde novedades
+  showWizStep(6);
+}
+function guardarPiqueteRapido(){wizData.apendiceDoc='';wizData.obs='';_doGuardar();}
+function guardarPiquete(){wizData.apendiceDoc=document.getElementById('piq-apendice-doc').value.trim();wizData.obs=document.getElementById('piq-obs').value.trim();_doGuardar();}
+function _doGuardar(){
+  const rel=getAct(); rel.piquetes.push({...wizData,elementos:[...wizData.elementos]});
+  rel.piqActual=rel.piqInicio+rel.piquetes.length; save(rel);
+  actualizarHeader(); renderPiquetesList();
+  if(activeTab==='diagrama') renderDiagrama();
+  toast(`✓ Piquete #${wizData.numero} guardado${wizData.urgente?' 🚨':''}`);
+  goPage('p-relev','back');
+}
+
+// ═══════════ DETALLE ═══════════
+function toggleDetPanel(bodyId, arrowId){
+  const body=document.getElementById(bodyId);
+  const arrow=document.getElementById(arrowId);
+  if(!body) return;
+  const open=body.style.display!=='none';
+  body.style.display=open?'none':'block';
+  if(arrow) arrow.textContent=open?'▼':'▲';
+}
+
+function renderDetalle(){
+  const rel=getRel(detalleRelId); if(!rel) return;
+  document.getElementById('det-title').textContent=rel.nombre;
+  document.getElementById('det-supra').textContent=rel.tension?`LÍNEA ${rel.tension}`:'RELEVAMIENTO FINALIZADO';
+
+  const piqs=rel.piquetes||[];
+  const nN=piqs.reduce((a,p)=>a+(p.novedades||[]).length,0);
+  const nUrg=piqs.filter(p=>p.urgente).length;
+  const nPrev=piqs.filter(p=>p.preventivo).length;
+
+  document.getElementById('det-np').textContent=piqs.length;
+  document.getElementById('det-nn').textContent=nN;
+  document.getElementById('det-nurg').textContent=nUrg;
+  document.getElementById('det-nprev').textContent=nPrev;
+
+  // ── URGENTES banner ──
+  const urgBanner=document.getElementById('det-urg-banner');
+  const urgBody=document.getElementById('det-urg-body');
+  const urgPiqs=piqs.filter(p=>p.urgente);
+  if(urgPiqs.length){
+    urgBanner.style.display='block';
+    urgBody.innerHTML=urgPiqs.map(p=>{
+      const novs=(p.novedades||[]).join(', ')||'—';
+      const prev=p.preventivo?' <span style="font-size:10px;color:var(--gr3)">[Prev]</span>':'';
+      return `<div style="padding:4px 0;border-bottom:1px solid rgba(218,54,51,.1)"><strong style="color:var(--rd2)">Piquete #${p.numero}</strong>${prev}<br><span style="color:var(--t3)">${novs}</span>${p.obs?`<br><em style="color:var(--t3)">${p.obs}</em>`:''}</div>`;
+    }).join('');
+    urgBody.style.display='block';
+    document.getElementById('det-urg-arrow').textContent='▲';
+  } else {
+    urgBanner.style.display='none';
+  }
+
+  // ── NOVEDADES ranking ──
+  const novBanner=document.getElementById('det-nov-banner');
+  const novBody=document.getElementById('det-nov-body');
+  if(nN>0){
+    novBanner.style.display='block';
+    const countMap={};
+    piqs.forEach(p=>(p.novedades||[]).forEach(n=>{ countMap[n]=(countMap[n]||0)+1; }));
+    const sorted=Object.entries(countMap).sort((a,b)=>b[1]-a[1]);
+    const maxC=sorted[0][1];
+    novBody.innerHTML=sorted.map(([nov,cnt])=>{
+      const pct=Math.round(cnt/maxC*100);
+      const plural=cnt>1?`${cnt} piquetes`:`1 piquete`;
+      return `<div style="padding:5px 0">
+        <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px">
+          <span style="color:var(--t1);font-weight:600">${nov}</span>
+          <span style="color:var(--t3)">${plural}</span>
+        </div>
+        <div style="height:5px;background:var(--s2);border-radius:3px;overflow:hidden">
+          <div style="height:100%;width:${pct}%;background:var(--am3);border-radius:3px;transition:width .4s"></div>
+        </div>
+      </div>`;
+    }).join('');
+  } else {
+    novBanner.style.display='none';
+  }
+
+  // ── APÉNDICES ──
+  const apBanner=document.getElementById('det-apend-banner');
+  const apBody=document.getElementById('det-apend-body');
+  const apendices=rel.apendices||[];
+  if(apendices.length){
+    apBanner.style.display='block';
+    apBody.innerHTML=apendices.map(ap=>{
+      const piqs2=piqs.filter(p=>p.apendice===ap);
+      const urgN=piqs2.filter(p=>p.urgente).length;
+      return `<div style="padding:3px 0;border-bottom:1px solid var(--brd)">
+        <strong style="color:var(--bl3)">${ap}</strong>
+        — ${piqs2.length} piquete${piqs2.length!==1?'s':''}
+        ${urgN?`<span style="color:var(--rd2);font-size:11px"> · ${urgN} urgente${urgN!==1?'s':''}</span>`:''}
+      </div>`;
+    }).join('');
+  } else {
+    apBanner.style.display='none';
+  }
+
+  // ── ESTRUCTURAS ──
+  const estrBanner=document.getElementById('det-estr-banner');
+  const estrBody=document.getElementById('det-estr-body');
+  const estrMap={};
+  piqs.forEach(p=>{
+    if(p.estructuraBase){
+      const k=p.estructuraTipo?`${p.estructuraBase} - ${p.estructuraTipo}`:p.estructuraBase;
+      estrMap[k]=(estrMap[k]||0)+1;
+    }
+  });
+  if(Object.keys(estrMap).length){
+    estrBanner.style.display='block';
+    estrBody.innerHTML=Object.entries(estrMap).sort((a,b)=>b[1]-a[1]).map(([tipo,cnt])=>
+      `<div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid var(--brd)">
+        <span>${tipo}</span><span style="font-weight:700;color:var(--t1)">${cnt}</span>
+      </div>`
+    ).join('');
+  } else {
+    estrBanner.style.display='none';
+  }
+
+  // ── GEOGRAFÍA ──
+  const geoBanner=document.getElementById('det-geo-banner');
+  const geoBody=document.getElementById('det-geo-body');
+  const geoMap={};
+  piqs.forEach(p=>(p.geos||[]).forEach(g=>{ geoMap[g]=(geoMap[g]||0)+1; }));
+  if(Object.keys(geoMap).length){
+    geoBanner.style.display='block';
+    geoBody.innerHTML=Object.entries(geoMap).sort((a,b)=>b[1]-a[1]).map(([geo,cnt])=>
+      `<div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid var(--brd)">
+        <span>${geo}</span><span style="font-weight:700;color:var(--gr3)">${cnt}</span>
+      </div>`
+    ).join('');
+  } else {
+    geoBanner.style.display='none';
+  }
+
+  // ── LISTA PIQUETES ──
+  const list=document.getElementById('det-list');
+  if(!piqs.length){list.innerHTML='<div class="empty-list">Sin piquetes registrados.</div>';return;}
+  list.innerHTML=piqs.map((piq,ri)=>{
+    const tags=[
+      `<span class="res-tag rt-bl">${piq.troncal}${piq.apendice?' · '+piq.apendice:''}</span>`,
+      piq.estructuraBase?`<span class="res-tag rt-am">${piq.estructuraBase}${piq.estructuraTipo?' · '+piq.estructuraTipo:''}</span>`:'',
+      ...(piq.geos||[]).map(g=>`<span class="res-tag rt-gr">${g}</span>`)
+    ].filter(Boolean).join('');
+    const urgBadge=piq.urgente?'<span style="font-size:10px;font-weight:700;color:var(--rd2);background:rgba(218,54,51,.12);border:1px solid rgba(218,54,51,.3);padding:1px 7px;border-radius:10px;margin-right:4px">🚨 Urgente</span>':'';
+    const prevBadge=piq.preventivo?'<span style="font-size:10px;font-weight:700;color:var(--gr3);background:rgba(46,160,67,.1);border:1px solid rgba(46,160,67,.3);padding:1px 7px;border-radius:10px">🔧 Preventivo</span>':'';
+    const hasBadges=piq.urgente||piq.preventivo;
+    return `<div class="piq-saved" style="${piq.urgente?'border-left:3px solid var(--rd2)':''}">
+      <div class="ps-num">#${piq.numero}</div>
+      <div class="ps-body">
+        ${hasBadges?`<div style="margin-bottom:4px">${urgBadge}${prevBadge}</div>`:''}
+        <div class="ps-tags">${tags}</div>
+        <div class="ps-novs">${(piq.novedades||[]).join(' · ')||'Sin novedades'}</div>
+        ${piq.obs?`<div class="ps-novs" style="margin-top:3px;font-style:italic;color:var(--t3)">${piq.obs}</div>`:''}
+      </div>
+      <div class="ps-del" onclick="deletePiqueteDetalle(${ri})">✕</div>
+    </div>`;
+  }).join('');
+}
+function deletePiqueteDetalle(idx){
+  showModal('¿Eliminar piquete?','Esta acción no se puede deshacer.',async ()=>{
+    const rel=getRel(detalleRelId);
+    rel.piquetes.splice(idx,1); await save(rel);
+    renderDetalle(); toast('Piquete eliminado');
+  },'danger');
+}
+function reabrirRelevamiento(){
+  const rel=getRel(detalleRelId); if(!rel) return;
+  showModal('¿Agregar más piquetes?',`El relevamiento "${rel.nombre}" se reabrirá y podrás cargar piquetes adicionales.`,async ()=>{
+    rel.finalizado=false;
+    rel.piqActual=rel.piqInicio+rel.piquetes.length;
+    await save(rel); activeRelId=detalleRelId;
+    abrirPantallaRel(); toast('Relevamiento reabierto');
+  },'green','Reabrir');
+}
+function confirmBorrarRelevamiento(){
+  const id = activeRelId || detalleRelId;
+  const rel = getRel(id); if(!rel) return;
+  // Solo el dueño puede borrar
+  if(currentUser && rel.creadoPor && rel.creadoPor !== currentUser.uid){
+    toast('Solo quien lo creó puede borrar este relevamiento','err'); return;
+  }
+  showModal('¿Borrar relevamiento?',`Se eliminará "${rel.nombre}" con todos sus piquetes. Esta acción no se puede deshacer.`,async ()=>{
+    await deleteRel(rel);
+    data.relevamientos=data.relevamientos.filter(r=>r.id!==id);
+    activeRelId=null; detalleRelId=null;
+    goPage('p-home','back'); renderHome(); toast('Relevamiento borrado');
+  },'danger');
+}
+
+
+
+function novCod(n){
+  // Si el string contiene (NNN) extraer solo el número; si no, devolver tal cual
+  const m = n.match(/\((\d+)\)/);
+  return m ? m[1] : n.replace(/[^\w]/g,'').slice(0,6);
+}
+// ═══════════ DIAGRAMA ═══════════
+let activeTab = 'lista';
+let activeDetTab = 'lista';
+
+function switchTab(tab){
+  activeTab = tab;
+  const lista = document.getElementById('piq-list');
+  const diag  = document.getElementById('panel-diagrama');
+  const tl = document.getElementById('tab-lista');
+  const td = document.getElementById('tab-diagrama');
+  if(tab === 'lista'){
+    lista.style.display = 'flex';
+    diag.style.display  = 'none';
+    tl.style.color = 'var(--bl3)'; tl.style.borderBottom = '2px solid var(--bl3)';
+    td.style.color = 'var(--t3)';  td.style.borderBottom = '2px solid transparent';
+  } else {
+    lista.style.display = 'none';
+    diag.style.display  = 'block';
+    tl.style.color = 'var(--t3)';  tl.style.borderBottom = '2px solid transparent';
+    td.style.color = 'var(--bl3)'; td.style.borderBottom = '2px solid var(--bl3)';
+    renderDiagrama();
+  }
+}
+
+function switchDetTab(tab){
+  activeDetTab = tab;
+  const lista = document.getElementById('det-list');
+  const diag  = document.getElementById('det-diagrama-wrap');
+  const tl = document.getElementById('dettab-lista');
+  const td = document.getElementById('dettab-diagrama');
+  if(tab === 'lista'){
+    lista.style.display = 'block';
+    diag.style.display  = 'none';
+    tl.style.background = 'var(--s2)'; tl.style.color = 'var(--bl3)';
+    td.style.background = 'none';      td.style.color = 'var(--t3)';
+  } else {
+    lista.style.display = 'none';
+    diag.style.display  = 'block';
+    tl.style.background = 'none';      tl.style.color = 'var(--t3)';
+    td.style.background = 'var(--s2)'; td.style.color = 'var(--bl3)';
+    renderDetDiagrama();
+  }
+}
+
+function buildDiagramaSVG(allPiqs, opts={}){
+  // ═══════════════════════════════════════════════════════════════════════════
+  // DIAGRAMA DE LÍNEA — layout vertical
+  //
+  // TRONCAL: serpentina de columnas, de arriba a abajo.
+  // APÉNDICES: cada apéndice se dibuja DEBAJO de la troncal, separado por
+  //   un título "Apéndice: [nombre]". En el piquete troncal donde empieza
+  //   el apéndice se dibuja una pequeña flecha a la derecha con
+  //   "→ ap. [nombre]".
+  //
+  // Etiquetas SIEMPRE a la izquierda del símbolo:
+  //   #N · novedades · URG/PRV · instrumentos
+  // ═══════════════════════════════════════════════════════════════════════════
+  const r       = opts.r      || 10;
+  const CABLE_H = opts.cableH || 36;
+  const NODE_H  = r*2 + CABLE_H;
+  const ARM_H   = r * 0.18;
+  const ARM_TIP = 7;
+
+  const bg      = opts.bg     || '#0d1117';
+  const C_CABLE = opts.cCable || '#484f58';
+  const C_NORM  = opts.cNorm  || '#58a6ff';
+  const C_URG   = opts.cUrg   || '#da3633';
+  const C_TEXT  = opts.cText  || '#8b949e';
+  const C_NOV   = opts.cNov   || '#e3b341';
+  const C_PREV  = opts.cPrev  || '#3fb950';
+  const C_CT    = opts.cCt    || '#f0a500';
+  const C_AP    = opts.cAp    || '#a78bfa';
+  const sw = 1.6;
+
+  const MAX_H  = opts.maxH || 520;
+  const MARG   = 28;
+  const LABEL_W = 72;
+  const SYM_W   = Math.max(r*2+24, r*4+24);
+  const LANE_W  = LABEL_W + SYM_W;
+  const LANE_PAD = 14;
+  const BEND_H  = 28;
+  const AP_SEP  = 36;   // espacio vertical entre troncal y cada apéndice
+  const AP_HDR  = 18;   // altura del título de apéndice
+
+  const perCol = Math.max(1, Math.floor((MAX_H - 56) / NODE_H));
+  function makeCols(piqs){ const c=[]; let i=0; while(i<piqs.length){c.push(piqs.slice(i,i+perCol));i+=perCol;} return c.length?c:[[]];}
+
+  // ── Helpers de dibujo ─────────────────────────────────────────────────────
+  function symRightEdge(type, cx){
+    return (type==='col-doble-ret') ? cx+r+r+ARM_H+2 : cx+r+2;
+  }
+
+  function drawSym(type, cx, circY, color, piq){
+    let s='';
+    const hasCT=(piq.elementos||[]).some(e=>e.cod==='CT');
+    switch(type){
+      case 'poste':{
+        const d=r*0.6;
+        s+=`<circle cx="${cx}" cy="${circY}" r="${r}" stroke="${color}" stroke-width="${sw}" fill="${bg}"/>`;
+        s+=`<line x1="${cx-d}" y1="${circY-d}" x2="${cx+d}" y2="${circY+d}" stroke="${color}" stroke-width="${sw}"/>`;
+        s+=`<line x1="${cx+d}" y1="${circY-d}" x2="${cx-d}" y2="${circY+d}" stroke="${color}" stroke-width="${sw}"/>`;
+        break;
+      }
+      case 'col-pasante':
+        s+=`<circle cx="${cx}" cy="${circY}" r="${r}" stroke="${color}" stroke-width="${sw}" fill="${bg}"/>`;
+        break;
+      case 'col-ret':{
+        const tyT=circY-r, tyB=circY+r;
+        s+=`<line x1="${cx}" y1="${tyT-ARM_H}" x2="${cx}" y2="${tyT}" stroke="${color}" stroke-width="2"/>`;
+        s+=`<line x1="${cx-ARM_TIP}" y1="${tyT-ARM_H}" x2="${cx+ARM_TIP}" y2="${tyT-ARM_H}" stroke="${color}" stroke-width="2"/>`;
+        s+=`<circle cx="${cx}" cy="${circY}" r="${r}" stroke="${color}" stroke-width="${sw}" fill="${bg}"/>`;
+        s+=`<line x1="${cx}" y1="${tyB}" x2="${cx}" y2="${tyB+ARM_H}" stroke="${color}" stroke-width="2"/>`;
+        s+=`<line x1="${cx-ARM_TIP}" y1="${tyB+ARM_H}" x2="${cx+ARM_TIP}" y2="${tyB+ARM_H}" stroke="${color}" stroke-width="2"/>`;
+        break;
+      }
+      case 'col-doble-ret':{
+        const cx1=cx-r, cx2=cx+r;
+        const lxL=cx1-r, lxR=cx2+r;
+        s+=`<line x1="${lxL-ARM_H}" y1="${circY-ARM_TIP}" x2="${lxL-ARM_H}" y2="${circY+ARM_TIP}" stroke="${color}" stroke-width="2.2"/>`;
+        s+=`<line x1="${lxL-ARM_H}" y1="${circY}" x2="${lxL}" y2="${circY}" stroke="${color}" stroke-width="2"/>`;
+        s+=`<circle cx="${cx1}" cy="${circY}" r="${r}" stroke="${color}" stroke-width="${sw}" fill="${bg}"/>`;
+        s+=`<circle cx="${cx2}" cy="${circY}" r="${r}" stroke="${color}" stroke-width="${sw}" fill="${bg}"/>`;
+        s+=`<line x1="${lxR}" y1="${circY}" x2="${lxR+ARM_H}" y2="${circY}" stroke="${color}" stroke-width="2"/>`;
+        s+=`<line x1="${lxR+ARM_H}" y1="${circY-ARM_TIP}" x2="${lxR+ARM_H}" y2="${circY+ARM_TIP}" stroke="${color}" stroke-width="2.2"/>`;
+        break;
+      }
+      default:
+        s+=`<circle cx="${cx}" cy="${circY}" r="4" fill="${color}" opacity=".5"/>`;
+    }
+    if(hasCT){
+      const ctElem=(piq.elementos||[]).find(e=>e.cod==='CT');
+      const tw=13, th=9, tx=symRightEdge(type,cx)+6;
+      s+=`<polygon points="${tx},${circY-th} ${tx},${circY+th} ${tx+tw},${circY}" fill="none" stroke="${C_CT}" stroke-width="1.5"/>`;
+      if(ctElem&&ctElem.num)
+        s+=`<text x="${tx+tw+3}" y="${circY+4}" font-size="7" font-weight="700" fill="${C_CT}" font-family="system-ui,sans-serif">${ctElem.num}</text>`;
+    }
+    return s;
+  }
+
+  function drawLeftLabels(piq, cx, circY, out){
+    const leftX = cx - SYM_W/2 - 20;
+    const isUrg = piq.urgente;
+    const items=[];
+    items.push({txt:`#${piq.numero}`,color:C_TEXT,bold:true});
+    (piq.novedades||[]).slice(0,3).forEach(n=>items.push({txt:novCod(n),color:C_NOV,bold:false}));
+    if(isUrg) items.push({txt:'URG',color:C_URG,bold:true});
+    if(piq.preventivo&&!isUrg) items.push({txt:'PRV',color:C_PREV,bold:true});
+    (piq.elementos||[]).filter(e=>e.cod!=='CT').forEach(el=>
+      items.push({txt:el.num?`${el.cod} ${el.num}`:el.cod,color:C_CT,bold:false})
+    );
+    const FS=7.5, lineH=FS+2;
+    let ty=circY - (items.length*lineH)/2 + FS;
+    items.forEach(item=>{
+      out.push(`<text x="${leftX}" y="${ty}" text-anchor="end" font-size="${FS}" font-weight="${item.bold?'700':'400'}" fill="${item.color}" font-family="system-ui,sans-serif">${item.txt}</text>`);
+      ty+=lineH;
+    });
+  }
+
+  // ── Función genérica que dibuja un bloque de columnas ─────────────────────
+  // yBase: offset Y desde el cual empiezan los nodos
+  // Returns { svgStr, blockH } donde blockH es la altura ocupada
+  function drawBlock(piqs, xOffset, yBase, apLabel){
+    const cols = makeCols(piqs);
+    const nCols = cols.length;
+    const maxInCol = Math.max(...cols.map(c=>c.length));
+    const blockH = maxInCol * NODE_H + BEND_H;
+    const out=[];
+
+    // Título de apéndice
+    if(apLabel){
+      const titX = xOffset + LABEL_W + SYM_W/2;
+      out.push(`<text x="${titX}" y="${yBase - 8}" text-anchor="middle" font-size="9" font-weight="700" fill="${C_AP}" font-family="system-ui,sans-serif">Apéndice: ${apLabel}</text>`);
+      // Línea divisoria
+      out.push(`<line x1="${xOffset}" y1="${yBase - 4}" x2="${xOffset + nCols*(LANE_W+LANE_PAD)}" y2="${yBase - 4}" stroke="${C_AP}" stroke-width="0.8" stroke-dasharray="4,3" opacity=".5"/>`);
+    }
+
+    cols.forEach((col, ci)=>{
+      const goingDown=(ci%2===0);
+      const laneX=xOffset+ci*(LANE_W+LANE_PAD);
+      const symCX=laneX+LABEL_W+SYM_W/2;
+
+      const nodeYs=col.map((_,ni)=>{
+        if(goingDown) return yBase + ni*NODE_H;
+        const botY=yBase+(maxInCol-1)*NODE_H;
+        return botY - ni*NODE_H;
+      });
+
+      col.forEach((piq,ni)=>{
+        const cy=nodeYs[ni], circY=cy+r;
+        const isUrg=piq.urgente;
+        const color=isUrg?C_URG:C_NORM;
+        const sType=getPiqueteSymType(piq);
+
+        if(ni>0){
+          const prevCircY=nodeYs[ni-1]+r;
+          if(goingDown)
+            out.push(`<line x1="${symCX}" y1="${prevCircY+r}" x2="${symCX}" y2="${cy}" stroke="${C_CABLE}" stroke-width="2"/>`);
+          else
+            out.push(`<line x1="${symCX}" y1="${prevCircY-r}" x2="${symCX}" y2="${cy+r*2}" stroke="${C_CABLE}" stroke-width="2"/>`);
+        }
+
+        out.push(drawSym(sType, symCX, circY, color, piq));
+        drawLeftLabels(piq, symCX, circY, out);
+
+        // Flecha → ap. [nombre] en el costado DERECHO del piquete troncal
+        // que es el último troncal antes de que empiece un apéndice
+        if(!apLabel && apArrowMap[piq.numero]){
+          apArrowMap[piq.numero].forEach(apN=>{
+            // Empezar DESPUÉS del CT si lo hay (triángulo ocupa ~26px)
+            const hasCT2=(piq.elementos||[]).some(e=>e.cod==='CT');
+            const ctOffset = hasCT2 ? 34 : 0;
+            const ax = symRightEdge(sType, symCX) + 10 + ctOffset;
+            const ay = circY;
+            // Flecha pequeña hacia la derecha
+            out.push(`<line x1="${ax}" y1="${ay}" x2="${ax+14}" y2="${ay}" stroke="${C_AP}" stroke-width="1.4"/>`);
+            out.push(`<polygon points="${ax+14},${ay-3} ${ax+14},${ay+3} ${ax+20},${ay}" fill="${C_AP}"/>`);
+            out.push(`<text x="${ax+23}" y="${ay+4}" font-size="7" font-weight="700" fill="${C_AP}" font-family="system-ui,sans-serif">ap. ${apN}</text>`);
+          });
+        }
+
+        if(ni<col.length-1){
+          if(goingDown)
+            out.push(`<line x1="${symCX}" y1="${circY+r}" x2="${symCX}" y2="${circY+r+CABLE_H}" stroke="${C_CABLE}" stroke-width="2"/>`);
+          else
+            out.push(`<line x1="${symCX}" y1="${circY-r}" x2="${symCX}" y2="${circY-r-CABLE_H}" stroke="${C_CABLE}" stroke-width="2"/>`);
+        }
+      });
+
+      if(ci<cols.length-1){
+        const lastCircY=nodeYs[col.length-1]+r;
+        const nextCX=xOffset+(ci+1)*(LANE_W+LANE_PAD)+LABEL_W+SYM_W/2;
+        const midX=(symCX+nextCX)/2;
+        if(goingDown){
+          const exitY=lastCircY+r, bendY=exitY+BEND_H/2;
+          out.push(`<path d="M ${symCX} ${exitY} Q ${symCX} ${bendY} ${midX} ${bendY} Q ${nextCX} ${bendY} ${nextCX} ${exitY-BEND_H+CABLE_H}" fill="none" stroke="${C_CABLE}" stroke-width="2"/>`);
+        } else {
+          const exitY=lastCircY-r, bendY=exitY-BEND_H/2;
+          out.push(`<path d="M ${symCX} ${exitY} Q ${symCX} ${bendY} ${midX} ${bendY} Q ${nextCX} ${bendY} ${nextCX} ${exitY+BEND_H-CABLE_H}" fill="none" stroke="${C_CABLE}" stroke-width="2"/>`);
+        }
+      }
+    });
+
+    return { svgStr: out.join(''), blockH };
+  }
+
+  // ── Separar troncal y apéndices ───────────────────────────────────────────
+  const troncalPiqs = allPiqs.filter(p=>!p.apendice);
+  const apNames=[], apGroups={};
+  allPiqs.filter(p=>p.apendice).forEach(p=>{
+    if(!apGroups[p.apendice]){apGroups[p.apendice]=[];apNames.push(p.apendice);}
+    apGroups[p.apendice].push(p);
+  });
+
+  // Para cada apéndice, encontrar el piquete troncal justo anterior
+  // (el troncal con numero máximo que sea < que el primer numero del apendice)
+  const apArrowMap = {};  // numero de piquete troncal → [nombres de apendices]
+  apNames.forEach(apN=>{
+    const apPiqs = apGroups[apN];
+    const firstApNum = Math.min(...apPiqs.map(p=>p.numero));
+    // piquete troncal más cercano anterior
+    const prevTr = troncalPiqs.filter(p=>p.numero < firstApNum);
+    const anchorPiq = prevTr.length ? prevTr[prevTr.length-1] : (troncalPiqs[0]||null);
+    if(anchorPiq){
+      if(!apArrowMap[anchorPiq.numero]) apArrowMap[anchorPiq.numero]=[];
+      apArrowMap[anchorPiq.numero].push(apN);
+    }
+  });
+
+  // ── Calcular layout vertical total ────────────────────────────────────────
+  const trCols = makeCols(troncalPiqs);
+  const trMaxInCol = Math.max(...trCols.map(c=>c.length));
+  const trBlockH = trMaxInCol*NODE_H + BEND_H;
+
+  // Calcular ancho máximo (mismo para todos los bloques)
+  const allPiqsLists = [troncalPiqs, ...apNames.map(n=>apGroups[n])];
+  const maxCols = Math.max(...allPiqsLists.map(l=>makeCols(l).length));
+  const totalW = maxCols*(LANE_W+LANE_PAD) + LABEL_W + 60;
+
+  // Altura total: troncal + suma de apéndices
+  let totalH = MARG + trBlockH;
+  apNames.forEach(n=>{
+    const apCols=makeCols(apGroups[n]);
+    const apMaxInCol=Math.max(...apCols.map(c=>c.length));
+    totalH += AP_SEP + AP_HDR + apMaxInCol*NODE_H + BEND_H;
+  });
+  totalH += MARG;
+
+  // ── Dibujar ───────────────────────────────────────────────────────────────
+  let svgParts = [];
+  let curY = MARG;
+
+  // Troncal
+  const trResult = drawBlock(troncalPiqs, 0, curY, '');
+  svgParts.push(trResult.svgStr);
+  curY += trResult.blockH;
+
+  // Apéndices
+  apNames.forEach(apN=>{
+    curY += AP_SEP;
+    const apResult = drawBlock(apGroups[apN], 0, curY + AP_HDR, apN);
+    svgParts.push(apResult.svgStr);
+    curY += AP_HDR + apResult.blockH;
+  });
+
+  return `<svg viewBox="0 0 ${totalW} ${totalH}" width="${totalW}" height="${totalH}" xmlns="http://www.w3.org/2000/svg">${svgParts.join('')}</svg>`;
+}
+
+function getPiqueteSymType(piq){
+  if(!piq.estructuraBase) return 'punto';
+  if(piq.estructuraBase === 'Poste') return 'poste';
+  const tipo = (piq.estructuraTipo||'').toLowerCase();
+  if(tipo.includes('doble')) return 'col-doble-ret';
+  if(tipo.includes('simple') || tipo.includes('retención') || tipo.includes('retencion')) return 'col-ret';
+  return 'col-pasante';
+}
+
+function wrapText(text, maxChars){
+  if(text.length <= maxChars) return [text];
+  const mid = Math.floor(text.length/2);
+  const sp = text.lastIndexOf(' ', mid);
+  if(sp < 0) return [text.slice(0,maxChars), text.slice(maxChars)];
+  return [text.slice(0,sp), text.slice(sp+1)];
+}
+
+function renderDiagrama(){
+  const rel = getAct(); if(!rel) return;
+  const wrap = document.getElementById('diagrama-wrap');
+  const empty = document.getElementById('diag-empty');
+  const piqs = rel.piquetes;
+  if(!piqs.length){
+    if(empty) empty.style.display = 'block';
+    return;
+  }
+  if(empty) empty.style.display = 'none';
+  wrap.innerHTML = buildDiagramaSVG(piqs);
+}
+
+function renderDetDiagrama(){
+  const rel = getRel(detalleRelId); if(!rel) return;
+  const inner = document.getElementById('det-diagrama-inner');
+  const piqs = rel.piquetes;
+  if(!piqs.length){ inner.innerHTML = '<div class="empty-list">Sin piquetes.</div>'; return; }
+  inner.innerHTML = buildDiagramaSVG(piqs);
+}
+
+
+// ═══════════ PDF EXPORT ═══════════
+
+// ── Genera el SVG del diagrama en serpentina para PDF ────────────────────────
+// Lógica de columnas: la línea baja por la col 0, llega al fondo, dobla en U
+// y sube por la col 1, llega arriba, dobla en U y baja por la col 2, etc.
+// En cada nodo: instrumentos a la izquierda, estructura+novedades a la derecha.
+function buildDiagramaPDF(allPiqs, pageH){
+  // Misma lógica que buildDiagramaSVG:
+  // Troncal en bloque superior, apéndices en bloques debajo.
+  // Dentro de cada bloque: serpentina de columnas.
+  // Etiquetas a la IZQUIERDA. CT a la DERECHA.
+
+  const r        = 10;
+  const CABLE_H  = 40;
+  const NODE_H   = r*2 + CABLE_H;
+  const ARM_H    = r * 0.18;
+  const ARM_TIP  = 12;
+  const BEND_H   = 32;
+  const MARGIN_V = 32;
+  const MARGIN_H = 20;
+  const AP_SEP   = 32;
+  const AP_HDR   = 18;
+  const MAX_COLS = 5;  // máximo de columnas por página
+
+  // Ancho de página A4 landscape en px (~794px) menos márgenes
+  const PAGE_W   = 750;
+  // Distribuir el ancho disponible entre MAX_COLS columnas
+  const LANE_PAD = 14;
+  const LANE_W   = Math.floor((PAGE_W - MARGIN_H*2 - LANE_PAD*(MAX_COLS-1)) / MAX_COLS);
+  const LABEL_W  = Math.floor(LANE_W * 0.52);
+  const SYM_W    = LANE_W - LABEL_W;
+
+  const bg     = '#ffffff';
+  const C_CABLE= '#aaaaaa';
+  const C_NORM = '#1558b0';
+  const C_URG  = '#c0392b';
+  const C_PREV = '#1e7e34';
+  const C_NOV  = '#7a5c00';
+  const C_INST = '#6b21a8';
+  const C_CT   = '#b45309';
+  const C_AP   = '#7c3aed';
+  const sw     = 1.6;
+
+  const usableH    = pageH - MARGIN_V*2 - BEND_H;
+  const nodesPerCol = Math.max(1, Math.floor(usableH / NODE_H));
+  // Divide in chunks of MAX_COLS columns → each chunk = one "page block"
+  function makeCols(piqs){ const c=[]; let i=0; while(i<piqs.length){c.push(piqs.slice(i,i+nodesPerCol));i+=nodesPerCol;} return c.length?c:[[]];}
+  function makePages(piqs){
+    const cols=makeCols(piqs);
+    const pages=[]; let i=0;
+    while(i<cols.length){ pages.push(cols.slice(i,i+MAX_COLS)); i+=MAX_COLS; }
+    return pages.length?pages:[[[]]];}
+
+  function symRightEdgePDF(type, cx){
+    return (type==='col-doble-ret') ? cx+r+r+ARM_H+2 : cx+r+2;
+  }
+
+  function drawSymPDF(type, cx, circY, color, piq){
+    let s='';
+    const hasCT=(piq.elementos||[]).some(e=>e.cod==='CT');
+    switch(type){
+      case 'poste':{
+        const d=r*0.6;
+        s+=`<circle cx="${cx}" cy="${circY}" r="${r}" stroke="${color}" stroke-width="${sw}" fill="${bg}"/>`;
+        s+=`<line x1="${cx-d}" y1="${circY-d}" x2="${cx+d}" y2="${circY+d}" stroke="${color}" stroke-width="${sw}"/>`;
+        s+=`<line x1="${cx+d}" y1="${circY-d}" x2="${cx-d}" y2="${circY+d}" stroke="${color}" stroke-width="${sw}"/>`;
+        break;
+      }
+      case 'col-pasante':
+        s+=`<circle cx="${cx}" cy="${circY}" r="${r}" stroke="${color}" stroke-width="${sw}" fill="${bg}"/>`;
+        break;
+      case 'col-ret':{
+        const tyT=circY-r, tyB=circY+r;
+        s+=`<line x1="${cx}" y1="${tyT-ARM_H}" x2="${cx}" y2="${tyT}" stroke="${color}" stroke-width="2"/>`;
+        s+=`<line x1="${cx-ARM_TIP}" y1="${tyT-ARM_H}" x2="${cx+ARM_TIP}" y2="${tyT-ARM_H}" stroke="${color}" stroke-width="2.2"/>`;
+        s+=`<circle cx="${cx}" cy="${circY}" r="${r}" stroke="${color}" stroke-width="${sw}" fill="${bg}"/>`;
+        s+=`<line x1="${cx}" y1="${tyB}" x2="${cx}" y2="${tyB+ARM_H}" stroke="${color}" stroke-width="2"/>`;
+        s+=`<line x1="${cx-ARM_TIP}" y1="${tyB+ARM_H}" x2="${cx+ARM_TIP}" y2="${tyB+ARM_H}" stroke="${color}" stroke-width="2.2"/>`;
+        break;
+      }
+      case 'col-doble-ret':{
+        const cx1=cx-r, cx2=cx+r;
+        const lxL=cx1-r, lxR=cx2+r;
+        s+=`<line x1="${lxL-ARM_H}" y1="${circY-ARM_TIP}" x2="${lxL-ARM_H}" y2="${circY+ARM_TIP}" stroke="${color}" stroke-width="2.2"/>`;
+        s+=`<line x1="${lxL-ARM_H}" y1="${circY}" x2="${lxL}" y2="${circY}" stroke="${color}" stroke-width="2"/>`;
+        s+=`<circle cx="${cx1}" cy="${circY}" r="${r}" stroke="${color}" stroke-width="${sw}" fill="${bg}"/>`;
+        s+=`<circle cx="${cx2}" cy="${circY}" r="${r}" stroke="${color}" stroke-width="${sw}" fill="${bg}"/>`;
+        s+=`<line x1="${lxR}" y1="${circY}" x2="${lxR+ARM_H}" y2="${circY}" stroke="${color}" stroke-width="2"/>`;
+        s+=`<line x1="${lxR+ARM_H}" y1="${circY-ARM_TIP}" x2="${lxR+ARM_H}" y2="${circY+ARM_TIP}" stroke="${color}" stroke-width="2.2"/>`;
+        break;
+      }
+      default:
+        s+=`<circle cx="${cx}" cy="${circY}" r="4" fill="${color}" opacity=".5"/>`;
+    }
+    if(hasCT){
+      const ctElem=(piq.elementos||[]).find(e=>e.cod==='CT');
+      const tw=13, th=9, tx=symRightEdgePDF(type,cx)+6;
+      s+=`<polygon points="${tx},${circY-th} ${tx},${circY+th} ${tx+tw},${circY}" fill="none" stroke="${C_CT}" stroke-width="1.5"/>`;
+      if(ctElem&&ctElem.num)
+        s+=`<text x="${tx+tw+3}" y="${circY+4}" font-size="7" font-weight="700" fill="${C_CT}" font-family="Arial,sans-serif">${ctElem.num}</text>`;
+    }
+    return s;
+  }
+
+  function drawLeftLabelsPDF(piq, cx, circY, isUrg){
+    const leftX = cx - SYM_W/2 - 8;
+    const items=[];
+    (piq.novedades||[]).slice(0,4).forEach(n=>items.push({txt:novCod(n),color:C_NOV,bold:false}));
+    if(isUrg) items.push({txt:'URGENTE',color:C_URG,bold:true});
+    if(piq.preventivo&&!isUrg) items.push({txt:'PREV',color:C_PREV,bold:true});
+    (piq.elementos||[]).filter(e=>e.cod!=='CT').forEach(el=>
+      items.push({txt:el.num?`${el.cod} ${el.num}`:el.cod,color:C_INST,bold:false})
+    );
+    const FS=8, lineH=FS+2;
+    let ty=circY-(items.length*lineH)/2+FS;
+    let out='';
+    items.forEach(item=>{
+      out+=`<text x="${leftX}" y="${ty}" text-anchor="end" font-size="${FS}" font-weight="${item.bold?'700':'400'}" fill="${item.color}" font-family="Arial,sans-serif">${item.txt}</text>`;
+      ty+=lineH;
+    });
+    return out;
+  }
+
+  // ── Separar troncal y apéndices ───────────────────────────────────────────
+  const troncalPiqs = allPiqs.filter(p => !p.apendice);
+  const apNames = [], apGroups = {};
+  allPiqs.filter(p => p.apendice).forEach(p => {
+    if (!apGroups[p.apendice]) { apGroups[p.apendice] = []; apNames.push(p.apendice); }
+    apGroups[p.apendice].push(p);
+  });
+
+  // Mapa de flechas: piquete troncal → apéndices que empiezan después
+  const apArrowMapPDF = {};
+  apNames.forEach(apN => {
+    const firstApNum = Math.min(...apGroups[apN].map(p => p.numero));
+    const prevTr = troncalPiqs.filter(p => p.numero < firstApNum);
+    const anchor = prevTr.length ? prevTr[prevTr.length - 1] : (troncalPiqs[0] || null);
+    if (anchor) {
+      if (!apArrowMapPDF[anchor.numero]) apArrowMapPDF[anchor.numero] = [];
+      apArrowMapPDF[anchor.numero].push(apN);
+    }
+  });
+
+  // ── Dibuja UNA página (un chunk de MAX_COLS columnas) ─────────────────────
+  // El espaciado entre nodos se estira para ocupar toda la altura disponible.
+  function drawPageSVG(pageCols, globalColOffset, maxInCol, arrowMap, apLabel) {
+    let out = '';
+    const labelOffset = apLabel ? AP_HDR + 12 : 0;
+    const yBase = MARGIN_V + labelOffset;
+
+    // Calcular cable dinámico para llenar la página
+    const availH = pageH - MARGIN_V * 2 - labelOffset - BEND_H;
+    const dynCableH = maxInCol > 1
+      ? Math.max(CABLE_H, Math.floor((availH - maxInCol * r * 2) / (maxInCol - 1)))
+      : CABLE_H;
+    const dynNodeH = r * 2 + dynCableH;
+    const svgH = pageH; // SVG ocupa exactamente la página
+
+    if (apLabel) {
+      const titX = MARGIN_H + LABEL_W + SYM_W / 2;
+      out += `<text x="${titX}" y="${MARGIN_V}" text-anchor="middle" font-size="11" font-weight="700" fill="${C_AP}" font-family="Arial,sans-serif">Apéndice: ${apLabel}</text>`;
+      out += `<line x1="${MARGIN_H}" y1="${MARGIN_V + 4}" x2="${MARGIN_H + pageCols.length * (LANE_W + LANE_PAD)}" y2="${MARGIN_V + 4}" stroke="${C_AP}" stroke-width="0.8" stroke-dasharray="4,3" opacity=".6"/>`;
+    }
+
+    pageCols.forEach((col, ci) => {
+      const globalCi = globalColOffset + ci;
+      const goingDown = (globalCi % 2 === 0);
+      const laneX = MARGIN_H + ci * (LANE_W + LANE_PAD);
+      const symCX = laneX + LABEL_W + SYM_W / 2;
+
+      const nodeYs = col.map((_, ni) => {
+        if (goingDown) return yBase + ni * dynNodeH;
+        const botY = yBase + (maxInCol - 1) * dynNodeH;
+        return botY - ni * dynNodeH;
+      });
+
+      col.forEach((piq, ni) => {
+        const cy = nodeYs[ni], circY = cy + r;
+        const isUrg = piq.urgente;
+        const color = isUrg ? C_URG : C_NORM;
+        const sType = getPiqueteSymType(piq);
+
+        if (ni > 0) {
+          const prevCircY = nodeYs[ni - 1] + r;
+          if (goingDown) out += `<line x1="${symCX}" y1="${prevCircY + r}" x2="${symCX}" y2="${cy}" stroke="${C_CABLE}" stroke-width="1.5"/>`;
+          else out += `<line x1="${symCX}" y1="${prevCircY - r}" x2="${symCX}" y2="${cy + r * 2}" stroke="${C_CABLE}" stroke-width="1.5"/>`;
+        }
+
+        out += drawSymPDF(sType, symCX, circY, color, piq);
+        out += drawLeftLabelsPDF(piq, symCX, circY, isUrg);
+
+        if (arrowMap && arrowMap[piq.numero]) {
+          const hasCT2 = (piq.elementos || []).some(e => e.cod === 'CT');
+          const ctOff = hasCT2 ? 34 : 0;
+          let ax = symRightEdgePDF(sType, symCX) + 10 + ctOff;
+          const ay = circY;
+          arrowMap[piq.numero].forEach(apN => {
+            out += `<line x1="${ax}" y1="${ay}" x2="${ax + 14}" y2="${ay}" stroke="${C_AP}" stroke-width="1.2"/>`;
+            out += `<polygon points="${ax + 14},${ay - 3} ${ax + 14},${ay + 3} ${ax + 19},${ay}" fill="${C_AP}"/>`;
+            out += `<text x="${ax + 22}" y="${ay + 4}" font-size="8" font-weight="700" fill="${C_AP}" font-family="Arial,sans-serif">ap. ${apN}</text>`;
+            ax += 60;
+          });
+        }
+
+        if (ni < col.length - 1) {
+          if (goingDown) out += `<line x1="${symCX}" y1="${circY + r}" x2="${symCX}" y2="${circY + r + dynCableH}" stroke="${C_CABLE}" stroke-width="1.5"/>`;
+          else out += `<line x1="${symCX}" y1="${circY - r}" x2="${symCX}" y2="${circY - r - dynCableH}" stroke="${C_CABLE}" stroke-width="1.5"/>`;
+        }
+      });
+
+      if (ci < pageCols.length - 1) {
+        const lastCircY = nodeYs[col.length - 1] + r;
+        const nextCX = MARGIN_H + (ci + 1) * (LANE_W + LANE_PAD) + LABEL_W + SYM_W / 2;
+        const midX = (symCX + nextCX) / 2;
+        if (goingDown) {
+          const exitY = lastCircY + r, bendY = exitY + BEND_H / 2;
+          out += `<path d="M ${symCX} ${exitY} Q ${symCX} ${bendY} ${midX} ${bendY} Q ${nextCX} ${bendY} ${nextCX} ${exitY - BEND_H + dynCableH}" fill="none" stroke="${C_CABLE}" stroke-width="1.5"/>`;
+        } else {
+          const exitY = lastCircY - r, bendY = exitY - BEND_H / 2;
+          out += `<path d="M ${symCX} ${exitY} Q ${symCX} ${bendY} ${midX} ${bendY} Q ${nextCX} ${bendY} ${nextCX} ${exitY + BEND_H - dynCableH}" fill="none" stroke="${C_CABLE}" stroke-width="1.5"/>`;
+        }
+      }
+    });
+
+    return `<svg viewBox="0 0 ${PAGE_W} ${svgH}" width="${PAGE_W}" height="${svgH}" xmlns="http://www.w3.org/2000/svg" style="background:#fff;display:block;width:100%;height:auto">${out}</svg>`;
+  }
+
+  // ── Genera todos los SVGs para un grupo de piquetes (troncal o apéndice) ──
+  // Devuelve array de strings SVG, uno por cada página de MAX_COLS columnas.
+  function buildGroupSVGs(piqs, arrowMap, apLabel) {
+    if (!piqs.length) return [];
+    const cols = makeCols(piqs);
+    const results = [];
+    for (let i = 0; i < cols.length; i += MAX_COLS) {
+      const pageCols = cols.slice(i, i + MAX_COLS);
+      const maxInCol = Math.max(...pageCols.map(c => c.length));
+      const globalColOffset = i;
+      const label = (i === 0) ? apLabel : (apLabel ? `${apLabel} (cont.)` : '');
+      results.push(drawPageSVG(pageCols, globalColOffset, maxInCol, arrowMap, label));
+    }
+    return results;
+  }
+
+  // ── Ensamblar HTML final con saltos de página reales ─────────────────────
+  const htmlParts = [];
+
+  // Troncal: una o más páginas
+  const trSVGs = buildGroupSVGs(troncalPiqs, apArrowMapPDF, '');
+  trSVGs.forEach((svg, i) => {
+    htmlParts.push({ svg, pageBreak: i > 0 });
+  });
+
+  // Apéndices: siempre en hoja nueva
+  apNames.forEach(apN => {
+    const apSVGs = buildGroupSVGs(apGroups[apN], null, apN);
+    apSVGs.forEach((svg, i) => {
+      htmlParts.push({ svg, pageBreak: true });
+    });
+  });
+
+  // Construir el HTML resultante
+  return htmlParts.map((part, idx) => {
+    const pb = part.pageBreak ? ' class="diag-pb"' : '';
+    return `<div${pb}>${part.svg}</div>`;
+  }).join('\n');
+}
+
+function exportarPDF(){
+  const rel = getRel(detalleRelId); if(!rel) return;
+  const piqs = rel.piquetes || [];
+
+  // ── Estadísticas ──────────────────────────────────────────────────────────
+  const nUrg  = piqs.filter(p=>p.urgente).length;
+  const nPrev = piqs.filter(p=>p.preventivo).length;
+  const nN    = piqs.reduce((a,p)=>a+(p.novedades||[]).length, 0);
+  const novMap = {};
+  piqs.forEach(p=>(p.novedades||[]).forEach(n=>{ novMap[n]=(novMap[n]||0)+1; }));
+  const novRank = Object.entries(novMap).sort((a,b)=>b[1]-a[1]);
+  const urgPiqs = piqs.filter(p=>p.urgente);
+  const estrMap = {};
+  piqs.forEach(p=>{
+    if(p.estructuraBase){
+      const k=p.estructuraTipo?`${p.estructuraBase} - ${p.estructuraTipo}`:p.estructuraBase;
+      estrMap[k]=(estrMap[k]||0)+1;
+    }
+  });
+
+  // ── Diagrama en serpentina (A4 landscape ≈ 750px usable height) ───────────
+  const diagSVG = buildDiagramaPDF(piqs, 980);
+
+  // ── Filas tabla piquetes ───────────────────────────────────────────────────
+  const piqRows = piqs.map(p=>`
+    <tr style="border-bottom:1px solid #eee;${p.urgente?'background:#fff5f5':''}">
+      <td style="padding:5px 8px;font-weight:700;color:${p.urgente?'#c0392b':'#333'}">#${p.numero}</td>
+      <td style="padding:5px 8px;color:#555">${p.troncal}${p.apendice?' · '+p.apendice:''}</td>
+      <td style="padding:5px 8px;color:#555">${p.estructuraBase||'—'}${p.estructuraTipo?' · '+p.estructuraTipo:''}</td>
+      <td style="padding:5px 8px;color:#555">${(p.novedades||[]).join(', ')||'—'}</td>
+      <td style="padding:5px 8px;color:#6b21a8">${(p.elementos||[]).map(e=>e.cod+(e.num?' #'+e.num:'')).join(', ')||'—'}</td>
+      <td style="padding:5px 8px;text-align:center">${p.urgente?'🚨':''}${p.preventivo?'🔧':''}</td>
+      <td style="padding:5px 8px;color:#777;font-style:italic">${p.obs||''}</td>
+    </tr>`).join('');
+
+  const fecha = new Date().toLocaleDateString('es-AR',{day:'2-digit',month:'long',year:'numeric'});
+  const html = `<!DOCTYPE html>
+<html><head><meta charset="UTF-8">
+<title>Relevamiento ${rel.nombre}</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Arial,Helvetica,sans-serif;color:#222;background:#fff;font-size:13px}
+.page{padding:20px 24px 28px}
+.pb{page-break-before:always;padding-top:20px}
+h1{font-size:21px;color:#1558b0;margin-bottom:3px}
+.sub{color:#777;font-size:11px;margin-bottom:14px}
+.stat-row{display:flex;gap:12px;margin-bottom:18px}
+.stat{flex:1;background:#f5f7ff;border:1px solid #c7d2fe;border-radius:8px;padding:10px;text-align:center}
+.stat-n{font-size:26px;font-weight:900;color:#1558b0}
+.stat-n.red{color:#c0392b}.stat-n.grn{color:#1e7e34}.stat-n.amb{color:#8a6d00}
+.stat-l{font-size:9px;color:#888;margin-top:2px;font-weight:700;letter-spacing:.4px}
+h2{font-size:13px;font-weight:700;color:#1558b0;margin:16px 0 7px;border-bottom:2px solid #c7d2fe;padding-bottom:3px}
+table{width:100%;border-collapse:collapse;font-size:11px}
+th{background:#1558b0;color:#fff;padding:5px 7px;text-align:left;font-weight:600}
+td{vertical-align:top}
+.urg-block{background:#fff5f5;border-left:4px solid #c0392b;padding:7px 11px;margin-bottom:5px;border-radius:3px}
+.urg-block strong{color:#c0392b}
+.nov-bar-row{display:flex;align-items:center;gap:8px;margin-bottom:4px}
+.nov-label{width:170px;font-size:10px;color:#333;flex-shrink:0}
+.nov-bar{flex:1;height:7px;background:#e5e7eb;border-radius:4px;overflow:hidden}
+.nov-fill{height:100%;background:#1558b0;border-radius:4px}
+.nov-cnt{font-size:10px;color:#888;flex-shrink:0;width:55px;text-align:right}
+.diag-section{width:100%}
+.diag-section div{display:block}
+.diag-section svg{width:100%;height:auto;display:block}
+.legend{font-size:9px;color:#888;margin-bottom:6px;line-height:1.8}
+@media print{
+  body{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .pb{page-break-before:always}
+  .diag-pb{page-break-before:always}
+}
+</style></head><body>
+
+  <!-- HOJA 1: ENCABEZADO + DIAGRAMA (primera página) -->
+  <div class="page">
+  <h1>⚡ ${rel.nombre}</h1>
+  <div class="sub">Tensión: ${rel.tension||'—'} &nbsp;·&nbsp; Fecha: ${rel.fecha||fecha} &nbsp;·&nbsp; Exportado: ${fecha}</div>
+  <h2 style="margin-top:0">⚡ Diagrama de línea</h2>
+  <div class="legend">
+    ⊗ Poste &nbsp;&nbsp; ○ Col. Pasante &nbsp;&nbsp; |—○—| Col. Simple Retención &nbsp;&nbsp; |—○○—| Col. Doble Retención
+    &nbsp;&nbsp; <span style="color:#c0392b">■ Urgente</span> &nbsp;&nbsp; <span style="color:#1e7e34">■ Preventivo</span>
+    &nbsp;&nbsp; <span style="color:#6b21a8">■ Instrumento (izquierda)</span>
+  </div>
+  <div class="diag-section">${diagSVG}</div>
+  </div>
+
+  <!-- HOJA SIGUIENTE: ESTADÍSTICAS -->
+  <div class="page pb">
+  <h2 style="margin-top:0">📊 Resumen estadístico</h2>
+  <div class="stat-row">
+    <div class="stat"><div class="stat-n">${piqs.length}</div><div class="stat-l">PIQUETES</div></div>
+    <div class="stat"><div class="stat-n amb">${nN}</div><div class="stat-l">NOVEDADES</div></div>
+    <div class="stat"><div class="stat-n red">${nUrg}</div><div class="stat-l">URGENTES</div></div>
+    <div class="stat"><div class="stat-n grn">${nPrev}</div><div class="stat-l">PREVENTIVOS</div></div>
+  </div>
+
+  ${urgPiqs.length ? `
+  <h2>🚨 Piquetes urgentes</h2>
+  ${urgPiqs.map(p=>`<div class="urg-block">
+    <strong>#${p.numero}</strong>${p.preventivo?' &nbsp;🔧 Preventivo':''}<br>
+    <span style="color:#555">Estructura: ${p.estructuraBase||'—'}${p.estructuraTipo?' · '+p.estructuraTipo:''}</span><br>
+    <span style="color:#555">Novedades: ${(p.novedades||[]).join(', ')||'—'}</span>
+    ${(p.elementos||[]).length?`<br><span style="color:#6b21a8">Instrumentos: ${p.elementos.map(e=>e.cod+(e.num?' #'+e.num:'')).join(', ')}</span>`:''}
+    ${p.obs?`<br><span style="color:#888;font-style:italic">${p.obs}</span>`:''}
+  </div>`).join('')}` : ''}
+
+  ${novRank.length ? `
+  <h2>📋 Resumen de novedades</h2>
+  ${novRank.map(([nov,cnt])=>`<div class="nov-bar-row">
+    <div class="nov-label">${nov}</div>
+    <div class="nov-bar"><div class="nov-fill" style="width:${Math.round(cnt/novRank[0][1]*100)}%"></div></div>
+    <div class="nov-cnt">${cnt} piq.</div>
+  </div>`).join('')}` : ''}
+
+  ${Object.keys(estrMap).length ? `
+  <h2>🏗️ Estructuras</h2>
+  <table><thead><tr><th>Tipo de estructura</th><th>Cantidad</th></tr></thead><tbody>
+  ${Object.entries(estrMap).sort((a,b)=>b[1]-a[1]).map(([t,c])=>`<tr><td style="padding:4px 7px">${t}</td><td style="padding:4px 7px;font-weight:700">${c}</td></tr>`).join('')}
+  </tbody></table>` : ''}
+
+  <h2>📄 Detalle completo de piquetes</h2>
+  <table>
+    <thead><tr><th>Piq.</th><th>Troncal/Apéndice</th><th>Estructura</th><th>Novedades</th><th>Elementos</th><th>Estado</th><th>Obs.</th></tr></thead>
+    <tbody>${piqRows}</tbody>
+  </table>
+</div>
+</body></html>`;
+
+  const win = window.open('', '_blank');
+  if(!win){ toast('Permitir ventanas emergentes para exportar PDF','err'); return; }
+  win.document.write(html);
+  win.document.close();
+  win.onload = () => { win.focus(); win.print(); };
+  toast('PDF generado — guardalo desde el menú de impresión');
+}
+
+// ═══════════ EXCEL ═══════════
+function loadSheetJS(cb){
+  if(window.XLSX){cb();return;}
+  const s=document.createElement('script');
+  s.src='https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+  s.onload=cb; document.head.appendChild(s);
+}
+function buildXLSX(rel){
+  const cols=['Relevamiento','Tensión','Fecha','Piquete#','Troncal/Apéndice','Apéndice','Estructura Base','Tipo Estructura','Novedades','Fases','Urgente','Preventivo','Elementos','Geografía','Ref Doc','Observaciones'];
+  const rows=rel.piquetes.map(p=>[
+    rel.nombre, rel.tension||'', rel.fecha, p.numero,
+    p.troncal||'', p.apendice||'', p.estructuraBase||'', p.estructuraTipo||'',
+    (p.novedades||[]).join(' | '), (p.fases||[]).join(' | '),
+    p.urgente?'SI':'NO', p.preventivo?'SI':'NO',
+    (p.elementos||[]).map(e=>e.cod+(e.num?' #'+e.num:'')).join(' | '),
+    (p.geos||[]).join(' | '), p.apendiceDoc||'', (p.obs||'').replace(/\n/g,' ')
+  ]);
+
+  const ws = XLSX.utils.aoa_to_sheet([cols, ...rows]);
+
+  // Ancho de columnas automático
+  const colWidths = cols.map((c,i)=>{
+    const maxLen = Math.max(c.length, ...rows.map(r=>String(r[i]||'').length));
+    return {wch: Math.min(Math.max(maxLen+2, 10), 50)};
+  });
+  ws['!cols'] = colWidths;
+
+  // Estilo de encabezado (fila 1 en negrita — solo funciona en xlsx completo)
+  const range = XLSX.utils.decode_range(ws['!ref']);
+  for(let C=range.s.c; C<=range.e.c; C++){
+    const addr = XLSX.utils.encode_cell({r:0,c:C});
+    if(!ws[addr]) continue;
+    ws[addr].s = {font:{bold:true},fill:{fgColor:{rgb:'1558B0'}},font:{bold:true,color:{rgb:'FFFFFF'}}};
+  }
+
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Piquetes');
+
+  // Hoja de resumen
+  const urgN=rel.piquetes.filter(p=>p.urgente).length;
+  const prevN=rel.piquetes.filter(p=>p.preventivo).length;
+  const novMap={};
+  rel.piquetes.forEach(p=>(p.novedades||[]).forEach(n=>{novMap[n]=(novMap[n]||0)+1;}));
+  const novRows=Object.entries(novMap).sort((a,b)=>b[1]-a[1]).map(([n,c])=>[n,c]);
+
+  const wsR = XLSX.utils.aoa_to_sheet([
+    ['Relevamiento', rel.nombre],
+    ['Tensión', rel.tension||''],
+    ['Fecha', rel.fecha||''],
+    ['Total piquetes', rel.piquetes.length],
+    ['Urgentes', urgN],
+    ['Preventivos', prevN],
+    [],
+    ['Novedad','Cantidad'],
+    ...novRows
+  ]);
+  wsR['!cols']=[{wch:30},{wch:15}];
+  XLSX.utils.book_append_sheet(wb, wsR, 'Resumen');
+
+  return wb;
+}
+function dlXLSX(rel){
+  loadSheetJS(()=>{
+    const wb=buildXLSX(rel);
+    XLSX.writeFile(wb, rel.nombre.replace(/\s+/g,'_')+'.xlsx');
+    toast('Excel descargado ✓');
+  });
+}
+function exportarCSV(){const r=getAct();if(!r||!r.piquetes.length){toast('Sin piquetes','err');return;}dlXLSX(r);}
+function exportarCSVDetalle(){const r=getRel(detalleRelId);if(r)dlXLSX(r);}
+
+// ═══════════ MODAL ═══════════
+function showModal(title,sub,cb,type='danger',confirmText=''){
+  document.getElementById('modal-title').textContent=title;
+  document.getElementById('modal-sub').textContent=sub;
+  const ok=document.getElementById('modal-ok');
+  ok.className='modal-confirm'+(type==='green'?' green':'');
+  ok.textContent=confirmText||(type==='green'?'Finalizar':'Eliminar');
+  modalCb=cb; document.getElementById('modal').classList.add('show');
+}
+function closeModal(){document.getElementById('modal').classList.remove('show');modalCb=null;}
+function modalAction(){if(modalCb)modalCb();closeModal();}
+
+// ═══════════ TOAST ═══════════
+function toast(msg,type){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.className='toast'+(type?' '+type:'');
+  t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2600);
+}
+
+// INIT — la autenticación Firebase maneja la navegación inicial
+</script>
+</body>
+</html>
